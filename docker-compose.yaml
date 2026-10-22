@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: duka-close-db
+    environment:
+      POSTGRES_DB: duka_close
+      POSTGRES_USER: duka
+      POSTGRES_PASSWORD: duka_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - duka_pgdata:/var/lib/postgresql/data
+
+volumes:
+  duka_pgdata:
