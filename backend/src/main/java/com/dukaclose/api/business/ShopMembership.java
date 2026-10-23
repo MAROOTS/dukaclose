@@ -36,4 +36,6 @@ public class ShopMembership extends BaseEntity {
     public UUID getUserId() { return userId; }
     public Role getRole() { return role; }
     public RecordStatus getStatus() { return status; }
+    public void activate()   { this.status = RecordStatus.ACTIVE; }
+    public void deactivate() { this.status = RecordStatus.INACTIVE; }
 }

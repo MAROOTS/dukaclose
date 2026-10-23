@@ -9,5 +9,7 @@ import java.util.UUID;
 public interface BusinessMembershipRepository extends JpaRepository<BusinessMembership, UUID> {
     List<BusinessMembership> findByUserId(UUID userId);
     List<BusinessMembership> findByUserIdAndStatus(UUID userId, RecordStatus status);
+    boolean existsByBusinessIdAndUserIdAndRoleAndStatus(UUID businessId, UUID userId, Role role, RecordStatus status);
+
 
 }

@@ -2,6 +2,7 @@
 package com.dukaclose.api.auth;
 
 import com.dukaclose.api.common.ApiError;
+import com.dukaclose.api.common.PhoneNumbers;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -33,7 +34,7 @@ public class AuthController {
     public MeResponse login(@Valid @RequestBody LoginRequest body,
                             HttpServletRequest request, HttpServletResponse response) {
         Authentication authentication = authenticationManager.authenticate(
-                UsernamePasswordAuthenticationToken.unauthenticated(body.identifier().trim(), body.password()));
+                UsernamePasswordAuthenticationToken.unauthenticated(PhoneNumbers.lenient(body.identifier()), body.password()));
 
         // Protect against session fixation: new session id after a successful login
         if (request.getSession(false) != null) {
