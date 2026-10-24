@@ -4,7 +4,9 @@ import AppLayout from './layout/AppLayout'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import ShopsPage from './pages/ShopsPage'
-
+import InventoryPage from './pages/InventoryPage'
+import ItemPage from './pages/ItemPage'
+import NewItemPage from './pages/NewItemPage'
 export default function App() {
     return (
         <Routes>
@@ -12,7 +14,10 @@ export default function App() {
             <Route element={<RequireAuth />}>
                 <Route element={<AppLayout />}>
                     <Route index element={<HomePage />} />
+                    <Route path="stock" element={<InventoryPage />} />
+                    <Route path="stock/:itemId" element={<ItemPage />} />
                     <Route element={<RequireOwner />}>
+                        <Route path="stock/new" element={<NewItemPage />} />
                         <Route path="shops" element={<ShopsPage />} />
                     </Route>
                 </Route>

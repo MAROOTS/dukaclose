@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { Building2, ChevronDown, Home, LogOut, Store } from 'lucide-react'
+import {Building2, ChevronDown, Home, LogOut, Package, Store} from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import { initials } from '../lib/names'
@@ -9,6 +9,7 @@ import Logo from '../ui/Logo'
 
 const NAV = [
     { to: '/', label: 'Home', icon: Home, end: true },
+    { to: '/stock', label: 'Stock', icon: Package },
     { to: '/shops', label: 'Shops', icon: Building2, ownerOnly: true },
 ]
 
