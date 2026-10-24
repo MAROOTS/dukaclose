@@ -22,4 +22,8 @@ public class Business extends BaseEntity {
 
     public String getName() { return name; }
     public RecordStatus getStatus() { return status; }
+
+    public void deactivate() {
+        this.status = RecordStatus.INACTIVE;
+    }
 }

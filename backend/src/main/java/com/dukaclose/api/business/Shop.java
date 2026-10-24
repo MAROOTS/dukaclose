@@ -26,6 +26,9 @@ public class Shop extends BaseEntity {
         this.businessId = businessId;
         this.name = name;
     }
+    public void deactivate() {
+        this.status = RecordStatus.INACTIVE;
+    }
 
     public UUID getBusinessId() { return businessId; }
     public String getName() { return name; }

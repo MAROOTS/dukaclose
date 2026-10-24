@@ -32,6 +32,10 @@ public class BusinessMembership extends BaseEntity {
         this.role = role;
     }
 
+    public void deactivate() {
+        this.status = RecordStatus.INACTIVE;
+    }
+
     public UUID getBusinessId() { return businessId; }
     public UUID getUserId() { return userId; }
     public Role getRole() { return role; }

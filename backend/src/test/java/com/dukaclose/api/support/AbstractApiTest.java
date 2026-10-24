@@ -79,4 +79,9 @@ public abstract class AbstractApiTest {
         }
         return mvc.perform(request);
     }
+    protected ResultActions doPut(MockHttpSession session, String url, String json) throws Exception {
+        MockHttpServletRequestBuilder request = put(url).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(json);
+        return send(request, session);
+    }
 }

@@ -1,1 +1,60 @@
 @import "tailwindcss";
+
+
+@theme {
+    --font-sans: "Public Sans Variable", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Newsreader Variable", ui-serif, Georgia, serif;
+
+    --color-paper: #f4f5f2;
+    --color-surface: #ffffff;
+    --color-ink: #17302b;
+    --color-ink-soft: #44574f;
+    --color-ink-faint: #667873;
+    --color-line: #e1e5e1;
+    --color-line-strong: #c3cbc6;
+
+    --color-forest-50: #eef6f3;
+    --color-forest-100: #d5e8e0;
+    --color-forest-600: #0f5a47;
+    --color-forest-700: #0c4a3a;
+    --color-forest-800: #0a3b2f;
+
+    --color-brass-500: #b8892b;
+
+    --color-ledger: #b3372e;
+    --color-ledger-50: #fbeceb;
+    --color-ledger-700: #8a2a23;
+}
+
+@layer base {
+    html {
+        background-color: var(--color-paper);
+        color: var(--color-ink);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+    h1, h2, h3 { text-wrap: balance; }
+}
+
+/* Ruled lines on the dark brand panel */
+.ledger-lines {
+    background-image: repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent 35px,
+            rgb(255 255 255 / 0.06) 35px,
+            rgb(255 255 255 / 0.06) 36px
+    );
+}
+
+/* Ruled lines on light paper */
+.ledger-paper {
+    background-image: repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent 31px,
+            #e6ebe7 31px,
+            #e6ebe7 32px
+    );
+    background-position: 0 14px;
+}
