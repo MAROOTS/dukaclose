@@ -307,4 +307,14 @@ class TenantIsolationTest extends AbstractApiTest {
         }
         assertThat(movementRepo.count()).isZero();
     }
+
+    @Test
+    void importIsClosedToEveryoneExceptTheShopsOwner() throws Exception {
+        String body = "{\"importId\":\"%s\",\"csv\":\"name,unit\\nRice,kg\"}".formatted(UUID.randomUUID());
+        for (User attacker : List.of(cashierA1, cashierA2, ownerB, cashierB1)) {
+            doPost(as(attacker), shopUrl(a1) + "/inventory/import?commit=true", body)
+                    .andExpect(status().isForbidden());
+        }
+        assertThat(itemRepo.findByBusinessIdOrderByNameAsc(bizA.getId())).isEmpty();
+    }
 }

@@ -7,6 +7,8 @@ import ShopsPage from './pages/ShopsPage'
 import InventoryPage from './pages/InventoryPage'
 import ItemPage from './pages/ItemPage'
 import NewItemPage from './pages/NewItemPage'
+import ImportPage from './pages/ImportPage'
+
 export default function App() {
     return (
         <Routes>
@@ -18,6 +20,7 @@ export default function App() {
                     <Route path="stock/:itemId" element={<ItemPage />} />
                     <Route element={<RequireOwner />}>
                         <Route path="stock/new" element={<NewItemPage />} />
+                        <Route path="stock/import" element={<ImportPage />} />
                         <Route path="shops" element={<ShopsPage />} />
                     </Route>
                 </Route>

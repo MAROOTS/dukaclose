@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Loader2, Plus, Search } from 'lucide-react'
+import { Loader2, Plus, Search, Upload } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { useInventory } from '../hooks/useInventory'
 import { formatKsh } from '../lib/money'
@@ -36,9 +36,14 @@ export default function InventoryPage() {
                     <p className="mt-2 text-ink-soft">{selectedShop.name}</p>
                 </div>
                 {canManage && (
-                    <Link to="/stock/new" className={buttonClass()}>
-                        <Plus className="h-4 w-4" aria-hidden="true" /> Add item
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                        <Link to="/stock/import" className={`${buttonClass('quiet')} border border-line-strong`}>
+                            <Upload className="h-4 w-4" aria-hidden="true" /> Import
+                        </Link>
+                        <Link to="/stock/new" className={buttonClass()}>
+                            <Plus className="h-4 w-4" aria-hidden="true" /> Add item
+                        </Link>
+                    </div>
                 )}
             </div>
 
