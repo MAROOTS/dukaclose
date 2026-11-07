@@ -40,12 +40,15 @@ public class StockMovement extends BaseEntity {
 
     @Column(length = 200) private String note;
     @Column(nullable = false) private UUID createdBy;
+    @Column private UUID shopDayId;
 
-    public StockMovement(UUID businessId, UUID shopId, UUID itemId, UUID requestId, MovementType movementType,
-                         BigDecimal quantityDelta, BigDecimal balanceAfter, BigDecimal unitCost,
-                         Long totalCostMinor, AdjustmentReason reason, String note, UUID createdBy) {
+    public StockMovement(UUID businessId, UUID shopId, UUID shopDayId, UUID itemId, UUID requestId,
+                         MovementType movementType, BigDecimal quantityDelta, BigDecimal balanceAfter,
+                         BigDecimal unitCost, Long totalCostMinor, AdjustmentReason reason, String note,
+                         UUID createdBy) {
         this.businessId = businessId;
         this.shopId = shopId;
+        this.shopDayId = shopDayId;
         this.itemId = itemId;
         this.requestId = requestId;
         this.movementType = movementType;

@@ -10,6 +10,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import com.dukaclose.api.day.DayStatus;
+import com.dukaclose.api.day.ShopDay;
+import com.dukaclose.api.day.ShopDayRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -26,8 +30,14 @@ public class StockService {
     private final ShopInventoryRepository inventory;
     private final StockMovementRepository movements;
     private final UserRepository users;
+    private final ShopDayRepository days;
+
 
     record Mismatch(UUID itemId, BigDecimal onHand, BigDecimal ledgerSum) {}
+
+    private UUID openDayId(UUID shopId) {
+        return days.findByShopIdAndStatus(shopId, DayStatus.OPEN).map(ShopDay::getId).orElse(null);
+    }
 
     // ------------------------------------------------------------------ stock in
 
@@ -67,7 +77,7 @@ public class StockService {
 
         row.applyStockIn(newOnHand, newAverage);
         StockMovement movement = movements.saveAndFlush(new StockMovement(
-                shop.getBusinessId(), shopId, itemId, req.requestId(), type, quantity, newOnHand,
+                shop.getBusinessId(), shopId, openDayId(shopId), itemId, req.requestId(), type, quantity, newOnHand,
                 unitCost, req.totalCostMinor(), null, cleanNote(req.note()), userId));
         return MovementResponse.of(movement, nameOf(userId));
     }
@@ -107,7 +117,7 @@ public class StockService {
         BigDecimal costAtTheTime = row.getAverageCost();     // stock leaves (or is found) at the current average
         row.applyAdjustment(newOnHand);
         StockMovement movement = movements.saveAndFlush(new StockMovement(
-                shop.getBusinessId(), shopId, itemId, req.requestId(), MovementType.ADJUSTMENT, delta, newOnHand,
+                shop.getBusinessId(), shopId,openDayId(shopId), itemId, req.requestId(), MovementType.ADJUSTMENT, delta, newOnHand,
                 costAtTheTime, null, req.reason(), cleanNote(req.note()), userId));
         return MovementResponse.of(movement, nameOf(userId));
     }

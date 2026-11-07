@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { firstName } from '../lib/names'
 import { buttonClass } from '../ui/Button'
+import DayPanel from "../features/day/DayPanel";
 
 // Display only. The server decides which business day a transaction belongs to.
 const dateFormat = new Intl.DateTimeFormat('en-KE', {
@@ -45,13 +46,7 @@ export default function HomePage() {
                 You are working in {selectedShop.name} as {selectedShop.role === 'OWNER' ? 'the owner' : 'a cashier'}.
             </p>
 
-            <section className="ledger-paper relative mt-10 overflow-hidden rounded-2xl border border-line bg-surface py-9 pl-14 pr-6 sm:pl-20 sm:pr-10">
-                <span aria-hidden="true" className="absolute inset-y-0 left-8 w-px bg-ledger/30 sm:left-12" />
-                <h2 className="font-display text-2xl font-medium">Today’s book is empty</h2>
-                <p className="mt-2 max-w-sm text-ink-soft">
-                    Sales, deni and money out will appear here as soon as you start recording.
-                </p>
-            </section>
+            <DayPanel key={selectedShop.id} shop={selectedShop} />
 
             {isOwner && shops.length > 0 && (
                 <section className="mt-12">
