@@ -263,7 +263,7 @@ public class SaleService {
                     reversal.getReason(), names.getOrDefault(reversal.getReversedBy(), ""), reversal.getCreatedAt());
 
             return new SaleResponse(sale.getId(), sale.getReceiptNo(), sale.getShopId(), dates.get(sale.getShopDayId()),
-                    sale.getStatus(), sale.getTotalMinor(), names.getOrDefault(sale.getCashierId(), ""),
+                    sale.getStatus(), sale.getTotalMinor(), sale.getCashierId(), names.getOrDefault(sale.getCashierId(), ""),
                     sale.getCreatedAt(), lineViews, payments, reversalView);
         }).toList();
     }

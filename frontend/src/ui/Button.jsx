@@ -8,6 +8,7 @@ const base =
 const variants = {
     primary: 'bg-forest-600 text-white hover:bg-forest-700 active:bg-forest-800',
     quiet: 'text-ink hover:bg-ink/5',
+    danger: 'bg-ledger text-white hover:bg-ledger-700 active:bg-ledger-700',
 }
 
 /** Use on <Link> elements that should look like buttons. */

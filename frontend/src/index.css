@@ -58,3 +58,9 @@
     );
     background-position: 0 14px;
 }
+
+@media print {
+    .no-print { display: none !important; }
+    .print-flat { display: block !important; }
+    html { background: #fff; }
+}

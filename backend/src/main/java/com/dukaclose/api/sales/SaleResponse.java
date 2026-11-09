@@ -9,7 +9,7 @@ import java.util.UUID;
 
 /** Deliberately has no cost fields: cashiers never see what an item cost. */
 public record SaleResponse(UUID id, long receiptNo, UUID shopId, LocalDate businessDate, SaleStatus status,
-                           long totalMinor, String cashierName, Instant createdAt,
+                           long totalMinor, UUID cashierId, String cashierName, Instant createdAt,
                            List<Line> lines, List<Allocation> allocations, Reversal reversal) {
 
     public record Line(UUID itemId, String name, Unit unit, BigDecimal quantity,

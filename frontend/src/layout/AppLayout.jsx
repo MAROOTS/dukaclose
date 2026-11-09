@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import {Building2, ChevronDown, Home, LogOut, Package, Store} from 'lucide-react'
+import {Building2, ChevronDown, Home, LogOut, Package, Receipt, ShoppingCart, Store} from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import { initials } from '../lib/names'
@@ -9,6 +9,8 @@ import Logo from '../ui/Logo'
 
 const NAV = [
     { to: '/', label: 'Home', icon: Home, end: true },
+    { to: '/sell', label: 'Sell', icon: ShoppingCart },
+    { to: '/sales', label: 'Sales', icon: Receipt },
     { to: '/stock', label: 'Stock', icon: Package },
     { to: '/shops', label: 'Shops', icon: Building2, ownerOnly: true },
 ]
@@ -69,9 +71,9 @@ export default function AppLayout() {
         }`
 
     return (
-        <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <div className="print-flat min-h-dvh lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
             {/* Sidebar: laptops */}
-            <aside className="hidden border-r border-line bg-surface px-5 py-7 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col">
+            <aside className="no-print hidden border-r border-line bg-surface px-5 py-7 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col " >
                 <div className="flex items-center gap-3">
                     <Logo size={34} />
                     <span className="font-display text-xl font-medium">Duka Close</span>
@@ -112,7 +114,7 @@ export default function AppLayout() {
 
             <div className="flex min-w-0 flex-col">
                 {/* Top bar: phones */}
-                <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-line bg-surface/90 px-4 backdrop-blur lg:hidden">
+                <header className="no-print sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-line bg-surface/90 px-4 backdrop-blur lg:hidden">
                     <Logo size={32} />
                     <div className="min-w-0 flex-1">
                         <ShopSwitcher />
@@ -143,7 +145,7 @@ export default function AppLayout() {
                 {showBottomNav && (
                     <nav
                         aria-label="Main"
-                        className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+                        className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
                     >
                         <ul className="mx-auto flex max-w-md">
                             {items.map(({ to, label, icon: Icon, end }) => (

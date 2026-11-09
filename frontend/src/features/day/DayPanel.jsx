@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../../api/client'
 import { useShopDay } from '../../hooks/useShopDay'
 import { formatBusinessDate, formatDateTime } from '../../lib/dates'
 import { formatKsh, parseKshToMinor } from '../../lib/money'
 import Alert from '../../ui/Alert'
-import Button from '../../ui/Button'
+import Button, { buttonClass } from '../../ui/Button'
 import Field from '../../ui/Field'
 
 function Page({ children }) {
@@ -94,9 +95,10 @@ export default function DayPanel({ shop }) {
                     </div>
                 )}
 
-                <p className="mt-6 max-w-sm text-ink-soft">
-                    Sales, deni and money out will appear here as you record them.
-                </p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                    <Link to="/sell" className={buttonClass()}>New sale</Link>
+                    <Link to="/sales" className={`${buttonClass('quiet')} border border-line-strong`}>Today’s sales</Link>
+                </div>
             </Page>
         )
     }

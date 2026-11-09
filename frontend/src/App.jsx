@@ -8,6 +8,9 @@ import InventoryPage from './pages/InventoryPage'
 import ItemPage from './pages/ItemPage'
 import NewItemPage from './pages/NewItemPage'
 import ImportPage from './pages/ImportPage'
+import SalePage from './pages/SalePage'
+import SalesPage from './pages/SalesPage'
+import SellPage from './pages/SellPage'
 
 export default function App() {
     return (
@@ -23,6 +26,9 @@ export default function App() {
                         <Route path="stock/import" element={<ImportPage />} />
                         <Route path="shops" element={<ShopsPage />} />
                     </Route>
+                    <Route path="sell" element={<SellPage />} />
+                    <Route path="sales" element={<SalesPage />} />
+                    <Route path="sales/:saleId" element={<SalePage />} />
                 </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
