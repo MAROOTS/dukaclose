@@ -6,6 +6,8 @@ import { formatQty } from '../../lib/units'
 function titleOf(m) {
     if (m.type === 'OPENING') return 'Starting stock'
     if (m.type === 'RECEIPT') return 'Delivery received'
+    if (m.type === 'SALE') return 'Sold'
+    if (m.type === 'SALE_REVERSAL') return 'Sale reversed'
     return reasonLabel(m.reason)
 }
 

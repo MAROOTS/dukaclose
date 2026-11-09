@@ -42,6 +42,8 @@ public class StockMovement extends BaseEntity {
     @Column(nullable = false) private UUID createdBy;
     @Column private UUID shopDayId;
 
+    @Column private UUID saleId;
+
     public StockMovement(UUID businessId, UUID shopId, UUID shopDayId, UUID itemId, UUID requestId,
                          MovementType movementType, BigDecimal quantityDelta, BigDecimal balanceAfter,
                          BigDecimal unitCost, Long totalCostMinor, AdjustmentReason reason, String note,
@@ -59,5 +61,14 @@ public class StockMovement extends BaseEntity {
         this.reason = reason;
         this.note = note;
         this.createdBy = createdBy;
+    }
+
+    public static StockMovement forSale(UUID businessId, UUID shopId, UUID shopDayId, UUID itemId,
+                                        MovementType type, BigDecimal quantityDelta, BigDecimal balanceAfter,
+                                        BigDecimal unitCost, UUID saleId, UUID createdBy) {
+        StockMovement m = new StockMovement(businessId, shopId, shopDayId, itemId, UUID.randomUUID(), type,
+                quantityDelta, balanceAfter, unitCost, null, null, null, createdBy);
+        m.saleId = saleId;
+        return m;
     }
 }

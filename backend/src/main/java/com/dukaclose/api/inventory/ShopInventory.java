@@ -56,4 +56,8 @@ public class ShopInventory extends BaseEntity {
     public void applyAdjustment(BigDecimal newOnHand) {
         this.onHand = newOnHand;
     }
+
+    public void applySale(BigDecimal newOnHand) {
+        this.onHand = newOnHand;      // selling never changes the average cost
+    }
 }

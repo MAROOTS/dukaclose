@@ -84,4 +84,14 @@ public abstract class AbstractApiTest {
                 .contentType(MediaType.APPLICATION_JSON).content(json);
         return send(request, session);
     }
+
+    protected ResultActions doPostWithKey(MockHttpSession session, String url, String idempotencyKey, String json)
+            throws Exception {
+        MockHttpServletRequestBuilder request = post(url).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(json);
+        if (idempotencyKey != null) {
+            request.header("Idempotency-Key", idempotencyKey);
+        }
+        return send(request, session);
+    }
 }

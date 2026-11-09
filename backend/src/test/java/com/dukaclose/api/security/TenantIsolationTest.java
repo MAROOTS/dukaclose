@@ -27,6 +27,7 @@ class TenantIsolationTest extends AbstractApiTest {
     @Autowired
     com.dukaclose.api.inventory.StockMovementRepository movementRepo;
     static final String PASSWORD = "pass12345";
+    @Autowired com.dukaclose.api.sales.SaleRepository saleRepo;
 
     Business bizA, bizB;
     Shop a1, a2, b1;
@@ -92,6 +93,7 @@ class TenantIsolationTest extends AbstractApiTest {
         String who = attacker.getDisplayName() + " vs " + victim.getName();
         expectStatus(403, session, who, new String[]{"GET", shopUrl(victim)});
         expectStatus(403, session, who, new String[]{"GET", shopUrl(victim) + "/inventory"});
+        expectStatus(403, session, who, new String[]{"GET", shopUrl(victim) + "/sales/" + UUID.randomUUID()});
         for (String[] endpoint : managementEndpoints(victim, cashierA1)) {
             expectStatus(403, session, who, endpoint);
         }
@@ -316,5 +318,16 @@ class TenantIsolationTest extends AbstractApiTest {
                     .andExpect(status().isForbidden());
         }
         assertThat(itemRepo.findByBusinessIdOrderByNameAsc(bizA.getId())).isEmpty();
+    }
+
+    @Test
+    void outsidersCannotRecordSalesOnAnotherShop() throws Exception {
+        String body = ("{\"lines\":[{\"itemId\":\"%s\",\"quantity\":1}],"
+                + "\"allocations\":[{\"method\":\"CASH\",\"amountMinor\":100}]}").formatted(UUID.randomUUID());
+        for (User attacker : List.of(cashierA2, ownerB, cashierB1)) {
+            doPostWithKey(as(attacker), shopUrl(a1) + "/sales", UUID.randomUUID().toString(), body)
+                    .andExpect(status().isForbidden());
+        }
+        assertThat(saleRepo.count()).isZero();
     }
 }

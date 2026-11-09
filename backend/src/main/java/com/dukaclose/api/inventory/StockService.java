@@ -33,7 +33,7 @@ public class StockService {
     private final ShopDayRepository days;
 
 
-    record Mismatch(UUID itemId, BigDecimal onHand, BigDecimal ledgerSum) {}
+  public  record Mismatch(UUID itemId, BigDecimal onHand, BigDecimal ledgerSum) {}
 
     private UUID openDayId(UUID shopId) {
         return days.findByShopIdAndStatus(shopId, DayStatus.OPEN).map(ShopDay::getId).orElse(null);
@@ -144,7 +144,7 @@ public class StockService {
      * Compares every on_hand balance with the sum of its ledger. An empty list means everything reconciles.
      * Package-private on purpose: it does no access check, so it is never exposed through the API.
      */
-    List<Mismatch> findMismatches(UUID shopId) {
+ public List<Mismatch> findMismatches(UUID shopId) {
         Map<UUID, BigDecimal> ledger = new HashMap<>();
         for (Object[] row : movements.sumByItem(shopId)) {
             ledger.put((UUID) row[0], (BigDecimal) row[1]);
