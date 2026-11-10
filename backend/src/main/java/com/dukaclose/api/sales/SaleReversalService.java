@@ -60,6 +60,7 @@ public class SaleReversalService {
         if (sale.getStatus() == SaleStatus.REVERSED) {
             throw ApiException.conflict("ALREADY_REVERSED", "This sale was already reversed.");
         }
+        debtService.lockAndCheckReversible(saleId); // refuses once the customer has paid something
 
         List<SaleLine> lines = saleLines.findBySaleIdOrderByLineNo(saleId);
         Map<UUID, ShopInventory> stock = new HashMap<>();
