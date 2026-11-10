@@ -7,6 +7,7 @@ import com.dukaclose.api.common.ApiException;
 import com.dukaclose.api.day.DayStatus;
 import com.dukaclose.api.day.ShopDay;
 import com.dukaclose.api.day.ShopDayRepository;
+import com.dukaclose.api.deni.DebtService;
 import com.dukaclose.api.inventory.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,6 +31,7 @@ public class SaleReversalService {
     private final ShopInventoryRepository inventory;
     private final StockMovementRepository movements;
     private final SaleService saleService;
+    private final DebtService debtService;
 
     @Transactional
     public SaleResponse reverse(UUID userId, UUID shopId, UUID saleId, String rawReason) {
@@ -83,8 +85,8 @@ public class SaleReversalService {
 
         reversals.save(new SaleReversal(saleId, shopId, sale.getBusinessId(), openDay.getId(), reason, userId));
         sale.markReversed();
+        debtService.voidForSale(saleId);
         sales.flush();
-
         return saleService.one(sale);
     }
 }

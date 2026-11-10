@@ -10,12 +10,20 @@ import java.util.UUID;
 /** Deliberately has no cost fields: cashiers never see what an item cost. */
 public record SaleResponse(UUID id, long receiptNo, UUID shopId, LocalDate businessDate, SaleStatus status,
                            long totalMinor, UUID cashierId, String cashierName, Instant createdAt,
-                           List<Line> lines, List<Allocation> allocations, Reversal reversal) {
+                           List<Line> lines, List<Allocation> allocations, Deni deni, Reversal reversal) {
 
     public record Line(UUID itemId, String name, Unit unit, BigDecimal quantity,
                        long unitPriceMinor, long lineTotalMinor) {}
 
     public record Allocation(PaymentMethod method, long amountMinor) {}
+
+    /**
+     * Null unless part of the sale was deni. customerOutstandingMinor is the customer's balance right now
+     * (across all branches). overLimit is a warning for the screen. It never stopped the sale.
+     */
+    public record Deni(UUID customerId, String customerName, String customerPhone, long amountMinor,
+                       LocalDate dueDate, boolean voided, long customerOutstandingMinor,
+                       Long creditLimitMinor, boolean overLimit) {}
 
     /** Null unless the sale was reversed. The original sale above stays exactly as it was recorded. */
     public record Reversal(String reason, String reversedByName, Instant reversedAt) {}

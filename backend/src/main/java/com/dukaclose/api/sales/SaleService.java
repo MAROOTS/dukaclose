@@ -6,11 +6,13 @@ import com.dukaclose.api.auth.UserRepository;
 import com.dukaclose.api.business.AccessService;
 import com.dukaclose.api.business.Shop;
 import com.dukaclose.api.common.ApiException;
+import com.dukaclose.api.common.PhoneNumbers;
 import com.dukaclose.api.common.RecordStatus;
 import com.dukaclose.api.day.BusinessClock;
 import com.dukaclose.api.day.DayStatus;
 import com.dukaclose.api.day.ShopDay;
 import com.dukaclose.api.day.ShopDayRepository;
+import com.dukaclose.api.deni.*;
 import com.dukaclose.api.inventory.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -49,8 +51,11 @@ public class SaleService {
     private final JdbcTemplate jdbc;
     private final SaleReversalRepository reversalRepo;
     private final BusinessClock clock;
+    private final CustomerService customerService;
+    private final DebtService debtService;
 
     public record SaleResult(SaleResponse sale, boolean replayed) {}
+    private record DeniInfo(String name, String phone, LocalDate dueDate, long amount) {}
 
     /** A line that passed every check, with everything needed to write it. */
     private record Priced(Item item, ShopInventory stock, BigDecimal quantity, long unitPrice,
@@ -71,7 +76,7 @@ public class SaleService {
         ShopDay day = days.findLockedForShare(shopId, DayStatus.OPEN)
                 .orElseThrow(() -> ApiException.conflict("NO_OPEN_DAY", "Open today’s book before recording sales."));
 
-        checkShape(request);
+        DeniInfo deni = checkShape(request);
 
         Map<UUID, Item> catalogue = items.findAllById(
                         request.lines().stream().map(CreateSaleRequest.LineRequest::itemId).toList()).stream()
@@ -154,6 +159,10 @@ public class SaleService {
         for (CreateSaleRequest.AllocationRequest a : request.allocations()) {
             allocations.save(new SaleAllocation(sale.getId(), shopId, a.method(), a.amountMinor()));
         }
+        if (deni != null) {
+            Customer customer = customerService.findOrCreate(shop.getBusinessId(), deni.name(), deni.phone());
+            debtService.create(shop.getBusinessId(), shopId, sale.getId(), customer.getId(), deni.amount(), deni.dueDate());
+        }
         sales.flush();
 
         return new SaleResult(one(sale), false);
@@ -181,22 +190,48 @@ public class SaleService {
         });
     }
 
-    private void checkShape(CreateSaleRequest request) {
+    private DeniInfo checkShape(CreateSaleRequest request) {
         Set<UUID> seenItems = new HashSet<>();
         for (CreateSaleRequest.LineRequest line : request.lines()) {
             if (!seenItems.add(line.itemId())) {
                 throw ApiException.badRequest("INVALID_LINES", "The same item appears twice. Combine it into one line.");
             }
         }
+
         Set<PaymentMethod> seenMethods = EnumSet.noneOf(PaymentMethod.class);
+        long deniAmount = 0;
         for (CreateSaleRequest.AllocationRequest a : request.allocations()) {
-            if (a.method() == PaymentMethod.DENI) {
-                throw ApiException.badRequest("DENI_NOT_AVAILABLE", "Deni sales are not available yet.");
-            }
             if (!seenMethods.add(a.method())) {
                 throw ApiException.badRequest("INVALID_ALLOCATION", "Each payment method can be used only once.");
             }
+            if (a.method() == PaymentMethod.DENI) deniAmount = a.amountMinor();
         }
+
+        CreateSaleRequest.CustomerRequest customer = request.customer();
+        if (deniAmount == 0) {
+            if (customer != null || request.dueDate() != null) {
+                throw ApiException.badRequest("CUSTOMER_NOT_NEEDED",
+                        "Customer details are only needed when part of the sale is deni.");
+            }
+            return null;
+        }
+
+        if (customer == null) {
+            throw ApiException.badRequest("CUSTOMER_REQUIRED", "Deni needs the customer’s name and phone.");
+        }
+        if (request.dueDate() == null) {
+            throw ApiException.badRequest("DUE_DATE_REQUIRED", "Deni needs a due date.");
+        }
+        LocalDate today = clock.today();
+        if (request.dueDate().isBefore(today) || request.dueDate().isAfter(today.plusDays(365))) {
+            throw ApiException.badRequest("INVALID_DUE_DATE",
+                    "The due date must be between today and one year from now.");
+        }
+        String name = customer.name().trim();
+        if (name.isEmpty()) {
+            throw ApiException.badRequest("CUSTOMER_REQUIRED", "Deni needs the customer’s name and phone.");
+        }
+        return new DeniInfo(name, PhoneNumbers.normalise(customer.phone()), request.dueDate(), deniAmount);
     }
 
     SaleResponse one(Sale sale) {
@@ -246,7 +281,7 @@ public class SaleService {
         Map<UUID, LocalDate> dates = days.findAllById(
                         list.stream().map(Sale::getShopDayId).collect(Collectors.toSet())).stream()
                 .collect(Collectors.toMap(ShopDay::getId, ShopDay::getBusinessDate));
-
+        Map<UUID, SaleResponse.Deni> deniBySale = denis(ids);
         return list.stream().map(sale -> {
             List<SaleResponse.Line> lineViews = linesBySale.getOrDefault(sale.getId(), List.of()).stream()
                     .sorted(Comparator.comparingInt(SaleLine::getLineNo))
@@ -264,10 +299,29 @@ public class SaleService {
 
             return new SaleResponse(sale.getId(), sale.getReceiptNo(), sale.getShopId(), dates.get(sale.getShopDayId()),
                     sale.getStatus(), sale.getTotalMinor(), sale.getCashierId(), names.getOrDefault(sale.getCashierId(), ""),
-                    sale.getCreatedAt(), lineViews, payments, reversalView);
+                    sale.getCreatedAt(), lineViews, payments, deniBySale.get(sale.getId()), reversalView);
         }).toList();
     }
 
+    private Map<UUID, SaleResponse.Deni> denis(List<UUID> saleIds) {
+        Map<UUID, CustomerDebt> debts = debtService.forSales(saleIds);
+        if (debts.isEmpty()) return Map.of();
+
+        Set<UUID> customerIds = debts.values().stream().map(CustomerDebt::getCustomerId).collect(Collectors.toSet());
+        Map<UUID, Customer> customers = customerService.byIds(customerIds);
+        Map<UUID, Long> outstanding = debtService.outstanding(customerIds);
+
+        Map<UUID, SaleResponse.Deni> result = new HashMap<>();
+        debts.forEach((saleId, debt) -> {
+            Customer c = customers.get(debt.getCustomerId());
+            long owed = outstanding.getOrDefault(c.getId(), 0L);
+            Long limit = c.getCreditLimitMinor();
+            result.put(saleId, new SaleResponse.Deni(c.getId(), c.getName(), c.getPhone(),
+                    debt.getOriginalAmountMinor(), debt.getDueDate(), debt.getStatus() == DebtStatus.VOID,
+                    owed, limit, limit != null && owed > limit));
+        });
+        return result;
+    }
     /** Same sale, same fingerprint, however the lines and payments are ordered. */
     private static String fingerprint(CreateSaleRequest request) {
         String lines = request.lines().stream()
@@ -278,9 +332,12 @@ public class SaleService {
                 .sorted(Comparator.comparing(a -> a.method().name()))
                 .map(a -> a.method() + ":" + a.amountMinor())
                 .collect(Collectors.joining(","));
+        String who = request.customer() == null ? "" : PhoneNumbers.lenient(request.customer().phone())
+                + ":" + request.customer().name().trim().toLowerCase(Locale.ROOT);
+        String due = request.dueDate() == null ? "" : request.dueDate().toString();
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest((lines + "|" + payments).getBytes(StandardCharsets.UTF_8));
+                    .digest((lines + "|" + payments + "|" + who + "|" + due).getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
