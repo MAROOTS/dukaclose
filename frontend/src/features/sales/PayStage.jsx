@@ -1,7 +1,7 @@
 import { Minus, Plus, Trash2 } from 'lucide-react'
 import { formatKsh, parseKshToMinor } from '../../lib/money'
-import { METHODS, qtyToText } from '../../lib/sales'
-import { UNITS, formatQty } from '../../lib/units'
+import { SALE_METHODS, qtyToText } from '../../lib/sales'
+import { UNITS } from '../../lib/units'
 import Alert from '../../ui/Alert'
 import Button from '../../ui/Button'
 import Field from '../../ui/Field'
@@ -57,6 +57,7 @@ function QuantityControl({ line, onChange }) {
 export default function PayStage({
                                      lines, total, pay, amounts, amountsInvalid, paid, received, onReceived,
                                      onQty, onRemove, onPay, onRest, canConfirm, submitting, onConfirm, error, blocked,
+                                     deniSection, deniMissing,
                                  }) {
     const diff = total === null ? null : total - paid
     const cash = amounts.CASH
@@ -107,7 +108,7 @@ export default function PayStage({
             <section className="mt-10">
                 <h2 className="font-display text-2xl font-medium">How was it paid?</h2>
                 <div className="mt-4 space-y-3">
-                    {METHODS.map((m) => (
+                    {SALE_METHODS.map((m) => (
                         <div key={m.value} className="flex items-end gap-2">
                             <div className="min-w-0 flex-1">
                                 <Field id={`pay-${m.value}`} label={m.label} inputMode="decimal" placeholder="0"
@@ -121,7 +122,13 @@ export default function PayStage({
                     ))}
                 </div>
                 <p role="status" className={`mt-4 text-sm font-medium ${matches ? 'text-forest-700' : 'text-ledger'}`}>{status}</p>
-                <p className="mt-1 text-sm text-ink-soft">Deni (credit) sales are coming soon.</p>
+
+                {amounts.DENI > 0 && deniSection}
+                {deniMissing && (
+                    <p role="status" className="mt-3 text-sm font-medium text-ledger">
+                        Add the customer and a due date for the deni.
+                    </p>
+                )}
 
                 {cash > 0 && (
                     <div className="mt-6 max-w-xs">

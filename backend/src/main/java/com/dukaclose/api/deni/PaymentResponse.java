@@ -8,8 +8,8 @@ import java.util.UUID;
 
 public record PaymentResponse(UUID id, UUID customerId, String customerName, CollectionMethod method,
                               long amountMinor, UUID shopId, LocalDate businessDate, String receivedByName,
-                              Instant createdAt, List<Allocation> allocations, long customerOutstandingMinor,
-                              Reversal reversal) {
+                              UUID receivedById, Instant createdAt, List<Allocation> allocations,
+                              long customerOutstandingMinor, Reversal reversal) {
 
     /** debtBalanceMinor is what is still owed on that debt right now. */
     public record Allocation(UUID debtId, long receiptNo, long amountMinor, long debtBalanceMinor, LocalDate dueDate) {}

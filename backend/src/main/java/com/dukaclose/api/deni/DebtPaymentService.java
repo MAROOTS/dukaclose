@@ -226,7 +226,7 @@ public class DebtPaymentService {
             Customer customer = customerMap.get(p.getCustomerId());
             return new PaymentResponse(p.getId(), customer.getId(), customer.getName(), p.getMethod(),
                     p.getAmountMinor(), p.getShopId(), dates.get(p.getShopDayId()),
-                    names.getOrDefault(p.getReceivedBy(), ""), p.getCreatedAt(), lines,
+                    names.getOrDefault(p.getReceivedBy(), ""), p.getReceivedBy(), p.getCreatedAt(), lines,
                     owed.getOrDefault(customer.getId(), 0L), reversal);
         }).toList();
     }

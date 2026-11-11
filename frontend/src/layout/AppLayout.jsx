@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
-import {Building2, ChevronDown, Home, LogOut, Package, Receipt, ShoppingCart, Store} from 'lucide-react'
+import { Link , NavLink, Outlet } from 'react-router-dom'
+import {Building2, ChevronDown, Home, LogOut, Package, Receipt, ShoppingCart, Store, Users, Wallet} from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import { initials } from '../lib/names'
@@ -8,11 +8,13 @@ import Alert from '../ui/Alert'
 import Logo from '../ui/Logo'
 
 const NAV = [
-    { to: '/', label: 'Home', icon: Home, end: true },
+    { to: '/', label: 'Home', icon: Home, end: true, sidebarOnly: true },
     { to: '/sell', label: 'Sell', icon: ShoppingCart },
     { to: '/sales', label: 'Sales', icon: Receipt },
+    { to: '/deni', label: 'Deni', icon: Users },
+    { to: '/money', label: 'Money', icon: Wallet },
     { to: '/stock', label: 'Stock', icon: Package },
-    { to: '/shops', label: 'Shops', icon: Building2, ownerOnly: true },
+    { to: '/shops', label: 'Shops', icon: Building2, ownerOnly: true, sidebarOnly: true },
 ]
 
 function ShopSwitcher() {
@@ -54,7 +56,8 @@ export default function AppLayout() {
     const [logoutError, setLogoutError] = useState('')
 
     const items = NAV.filter((item) => !item.ownerOnly || isOwner)
-    const showBottomNav = items.length > 1
+    const tabs = items.filter((item) => !item.sidebarOnly)
+    const showBottomNav = tabs.length > 1
 
     async function handleLogout() {
         setLogoutError('')
@@ -115,7 +118,7 @@ export default function AppLayout() {
             <div className="flex min-w-0 flex-col">
                 {/* Top bar: phones */}
                 <header className="no-print sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-line bg-surface/90 px-4 backdrop-blur lg:hidden">
-                    <Logo size={32} />
+                    <Link to="/" aria-label="Home" className="shrink-0"><Logo size={32} /></Link>
                     <div className="min-w-0 flex-1">
                         <ShopSwitcher />
                     </div>
@@ -148,7 +151,7 @@ export default function AppLayout() {
                         className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
                     >
                         <ul className="mx-auto flex max-w-md">
-                            {items.map(({ to, label, icon: Icon, end }) => (
+                            {tabs.map(({ to, label, icon: Icon, end }) => (
                                 <li key={to} className="flex-1">
                                     <NavLink
                                         to={to}

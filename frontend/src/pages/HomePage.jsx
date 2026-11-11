@@ -50,7 +50,10 @@ export default function HomePage() {
 
             {isOwner && shops.length > 0 && (
                 <section className="mt-12">
-                    <h2 className="font-display text-2xl font-medium">Your shops</h2>
+                    <div className="flex items-baseline justify-between gap-4">
+                        <h2 className="font-display text-2xl font-medium">Your shops</h2>
+                        <Link to="/shops" className="text-sm font-medium text-forest-700 hover:underline">Manage shops</Link>
+                    </div>
                     <ul className="mt-4 divide-y divide-line border-y border-line">
                         {shops.map((shop) => {
                             const active = shop.id === selectedShop.id

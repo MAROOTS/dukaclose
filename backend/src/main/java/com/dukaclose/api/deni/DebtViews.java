@@ -22,8 +22,9 @@ public final class DebtViews {
 
     public record PaymentReversalView(String reason, String reversedByName, Instant reversedAt) {}
 
-    public record PaymentLine(UUID paymentId, CollectionMethod method, long amountMinor, String receivedByName,
-                              String shopName, Instant createdAt, List<PaymentAllocationLine> allocations,
+    public record PaymentLine(UUID paymentId, UUID receivedById, UUID shopId, LocalDate businessDate,
+                              CollectionMethod method, long amountMinor, String receivedByName, String shopName,
+                              Instant createdAt, List<PaymentAllocationLine> allocations,
                               PaymentReversalView reversal) {}
 
     public record WriteOffLine(UUID debtId, long receiptNo, long amountMinor, String reason,

@@ -11,7 +11,9 @@ import ImportPage from './pages/ImportPage'
 import SalePage from './pages/SalePage'
 import SalesPage from './pages/SalesPage'
 import SellPage from './pages/SellPage'
-
+import CustomerPage from './pages/CustomerPage'
+import DeniPage from './pages/DeniPage'
+import MoneyPage from './pages/MoneyPage'
 export default function App() {
     return (
         <Routes>
@@ -29,6 +31,9 @@ export default function App() {
                     <Route path="sell" element={<SellPage />} />
                     <Route path="sales" element={<SalesPage />} />
                     <Route path="sales/:saleId" element={<SalePage />} />
+                    <Route path="deni" element={<DeniPage />} />
+                    <Route path="deni/:customerId" element={<CustomerPage />} />
+                    <Route path="money" element={<MoneyPage />} />
                 </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,6 +1,7 @@
 import { Printer, Share2 } from 'lucide-react'
-import { formatDateTime } from '../../lib/dates'
+import { formatBusinessDate, formatDateTime } from '../../lib/dates'
 import { formatKsh } from '../../lib/money'
+import { formatPhone } from '../../lib/phone'
 import { formatReceiptNo, methodLabel, receiptText } from '../../lib/sales'
 import { formatQty } from '../../lib/units'
 import { buttonClass } from '../../ui/Button'
@@ -48,11 +49,24 @@ export default function Receipt({ sale, shopName }) {
             <ul className="mt-4 space-y-1 text-sm">
                 {sale.allocations.map((a) => (
                     <li key={a.method} className="flex justify-between">
-                        <span className="text-ink-soft">Paid by {methodLabel(a.method)}</span>
+            <span className="text-ink-soft">
+              {a.method === 'DENI' ? 'On deni (credit)' : `Paid by ${methodLabel(a.method)}`}
+            </span>
                         <span className="tabular-nums">{formatKsh(a.amountMinor)}</span>
                     </li>
                 ))}
             </ul>
+
+            {sale.deni && (
+                <div className="mt-5 rounded-xl border border-line-strong px-4 py-3 text-sm">
+                    <p className="font-medium">Deni: {sale.deni.customerName}</p>
+                    <p className="text-ink-soft">{formatPhone(sale.deni.customerPhone)}</p>
+                    <p className="text-ink-soft">
+                        {formatKsh(sale.deni.amountMinor)}, due {formatBusinessDate(sale.deni.dueDate)}
+                    </p>
+                    {sale.deni.voided && <p className="mt-1 text-ledger">This deni was cancelled with the sale.</p>}
+                </div>
+            )}
 
             <p className="mt-8 text-center text-sm text-ink-soft">Asante, karibu tena.</p>
         </article>

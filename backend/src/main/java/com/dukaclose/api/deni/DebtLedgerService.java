@@ -8,6 +8,8 @@ import com.dukaclose.api.business.Shop;
 import com.dukaclose.api.business.ShopRepository;
 import com.dukaclose.api.common.ApiException;
 import com.dukaclose.api.day.BusinessClock;
+import com.dukaclose.api.day.ShopDay;
+import com.dukaclose.api.day.ShopDayRepository;
 import com.dukaclose.api.sales.Sale;
 import com.dukaclose.api.sales.SaleRepository;
 import com.dukaclose.api.deni.DebtViews.*;
@@ -58,7 +60,7 @@ public class DebtLedgerService {
     private final BusinessClock clock;
     private final JdbcTemplate jdbc;
     private final DebtPaymentReversalRepository paymentReversals;
-
+    private final ShopDayRepository days;
     // ---------------------------------------------------------------- the ledger
 
     @Transactional(readOnly = true)
@@ -131,13 +133,18 @@ public class DebtLedgerService {
         List<DebtLine> debtLines = recentDebts.stream()
                 .map(d -> line(d, balances.get(d.getId()), saleMap, shopNames, today)).toList();
 
+        Map<UUID, LocalDate> paymentDates = days.findAllById(
+                        recentPayments.stream().map(DebtPayment::getShopDayId).collect(Collectors.toSet())).stream()
+                .collect(Collectors.toMap(ShopDay::getId, ShopDay::getBusinessDate));
+
         Function<UUID, PaymentReversalView> reversalView = paymentId -> {
             DebtPaymentReversal r = reversalByPayment.get(paymentId);
             return r == null ? null
                     : new PaymentReversalView(r.getReason(), names.getOrDefault(r.getReversedBy(), ""), r.getCreatedAt());
         };
         List<PaymentLine> paymentLines = recentPayments.stream().map(p -> new PaymentLine(
-                p.getId(), p.getMethod(), p.getAmountMinor(), names.getOrDefault(p.getReceivedBy(), ""),
+                p.getId(), p.getReceivedBy(), p.getShopId(), paymentDates.get(p.getShopDayId()),
+                p.getMethod(), p.getAmountMinor(), names.getOrDefault(p.getReceivedBy(), ""),
                 shopNames.getOrDefault(p.getShopId(), ""), p.getCreatedAt(),
                 partsByPayment.getOrDefault(p.getId(), List.of()).stream()
                         .sorted(Comparator.comparing((DebtPaymentAllocation a) -> debtMap.get(a.getDebtId()).getDueDate()))

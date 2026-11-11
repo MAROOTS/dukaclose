@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
@@ -8,6 +7,8 @@ import ReverseForm from '../features/sales/ReverseForm'
 import { useShopDay } from '../hooks/useShopDay'
 import Alert from '../ui/Alert'
 import BackLink from '../ui/BackLink'
+import { Link, useParams } from 'react-router-dom'
+import { buttonClass } from '../ui/Button'
 
 function SaleDetail({ shop, saleId }) {
     const { me } = useAuth()
@@ -66,8 +67,15 @@ function SaleDetail({ shop, saleId }) {
             <div className="no-print mt-6 flex flex-wrap gap-3">
                 <ReceiptActions sale={sale} shopName={shop.name} />
             </div>
+            {sale.deni && (
+                <div className="no-print mt-4">
+                    <Link to={`/deni/${sale.deni.customerId}`} className={`${buttonClass('quiet')} border border-line-strong`}>
+                        View {sale.deni.customerName}’s account
+                    </Link>
+                </div>
+            )}
             <div className="mt-8">
-                {canReverse && <ReverseForm shopId={shop.id} saleId={sale.id} onDone={load} />}
+                <ReverseForm url={`/shops/${shop.id}/sales/${sale.id}/reverse`} noun="sale" onDone={load} />
                 {why && <p className="no-print max-w-md text-sm text-ink-soft">{why}</p>}
             </div>
         </div>

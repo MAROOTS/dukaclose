@@ -1,4 +1,4 @@
-import { formatDateTime } from './dates'
+import { formatDateTime, formatShortDate } from './dates'
 import { formatKsh } from './money'
 import { formatQty, parseQty, UNITS } from './units'
 
@@ -7,6 +7,9 @@ export const METHODS = [
     { value: 'POCHI', label: 'Pochi' },
     { value: 'TILL', label: 'Till' },
 ]
+
+export const SALE_METHODS = [...METHODS, { value: 'DENI', label: 'Deni (on credit)' }]
+
 
 const LABELS = { CASH: 'Cash', POCHI: 'Pochi', TILL: 'Till', DENI: 'Deni' }
 export const methodLabel = (method) => LABELS[method] ?? method
@@ -55,7 +58,13 @@ export function receiptText(sale, shopName) {
     const lines = sale.lines.map(
         (l) => `${formatQty(l.quantity, l.unit)} ${l.name} @ ${formatKsh(l.unitPriceMinor)} = ${formatKsh(l.lineTotalMinor)}`,
     )
-    const paid = sale.allocations.map((a) => `${methodLabel(a.method)} ${formatKsh(a.amountMinor)}`).join(', ')
+    const paid = sale.allocations
+        .filter((a) => a.method !== 'DENI')
+        .map((a) => `${methodLabel(a.method)} ${formatKsh(a.amountMinor)}`)
+        .join(', ')
+    const deni = sale.deni
+        ? [`On deni: ${formatKsh(sale.deni.amountMinor)} for ${sale.deni.customerName}, due ${formatShortDate(sale.deni.dueDate)}`]
+        : []
     return [
         shopName,
         `Receipt ${formatReceiptNo(sale.receiptNo)}, ${formatDateTime(sale.createdAt)}`,
@@ -63,7 +72,8 @@ export function receiptText(sale, shopName) {
         ...lines,
         '',
         `Total: ${formatKsh(sale.totalMinor)}`,
-        `Paid: ${paid}`,
+        ...(paid ? [`Paid: ${paid}`] : []),
+        ...deni,
         '',
         'Asante!',
     ].join('\n')

@@ -3,18 +3,22 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import DeniSection from '../features/sales/DeniSection'
 import ItemPicker from '../features/sales/ItemPicker'
 import PayStage from '../features/sales/PayStage'
 import Receipt, { ReceiptActions } from '../features/sales/Receipt'
 import { useCart } from '../hooks/useCart'
 import { useInventory } from '../hooks/useInventory'
 import { useShopDay } from '../hooks/useShopDay'
-import { formatBusinessDate } from '../lib/dates'
+import { addDays, formatBusinessDate } from '../lib/dates'
 import { formatKsh, minorToInput, parseKshToMinor } from '../lib/money'
-import { describeLines, METHODS, sumLines } from '../lib/sales'
+import { isValidPhone } from '../lib/phone'
+import { describeLines, SALE_METHODS, sumLines } from '../lib/sales'
 import Alert from '../ui/Alert'
 import Button, { buttonClass } from '../ui/Button'
 import Notice from '../ui/Notice'
+
+const EMPTY_PAY = { CASH: '', POCHI: '', TILL: '', DENI: '' }
 
 function Spinner() {
     return (
@@ -30,9 +34,11 @@ function Sell({ shop }) {
     const cart = useCart(shop.id)
 
     const [stage, setStage] = useState('items') // items | pay | done
-    const [pay, setPay] = useState({ CASH: '', POCHI: '', TILL: '' })
+    const [pay, setPay] = useState(EMPTY_PAY)
     const [touched, setTouched] = useState(false)
     const [received, setReceived] = useState('')
+    const [customer, setCustomer] = useState(null) // null | { mode: 'existing', customer } | { mode: 'new', name, phone }
+    const [dueDate, setDueDate] = useState('')
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
     const [conflict, setConflict] = useState(false)
@@ -65,7 +71,7 @@ function Sell({ shop }) {
 
     // Until the cashier edits the payment boxes, "all cash" follows the total
     useEffect(() => {
-        if (!touched) setPay({ CASH: total ? minorToInput(total) : '', POCHI: '', TILL: '' })
+        if (!touched) setPay({ ...EMPTY_PAY, CASH: total ? minorToInput(total) : '' })
     }, [total, touched])
 
     useEffect(() => {
@@ -74,14 +80,25 @@ function Sell({ shop }) {
 
     const amounts = {}
     let amountsInvalid = false
-    for (const m of METHODS) {
+    for (const m of SALE_METHODS) {
         const text = pay[m.value].trim()
         const value = text === '' ? 0 : parseKshToMinor(text)
         if (value === null) amountsInvalid = true
         amounts[m.value] = value ?? 0
     }
     const paid = Object.values(amounts).reduce((a, b) => a + b, 0)
-    const canConfirm = !submitting && !amountsInvalid && total !== null && total > 0 && paid === total
+
+    // Deni needs a customer and a due date
+    const deniMinor = amounts.DENI
+    const today = status?.today ?? ''
+    const due = dueDate || (today ? addDays(today, 14) : '')
+    const customerReady =
+        customer?.mode === 'existing' ||
+        (customer?.mode === 'new' && customer.name.trim().length > 0 && isValidPhone(customer.phone))
+    const dueValid = Boolean(today) && due >= today && due <= addDays(today, 365)
+    const deniOk = deniMinor === 0 || (customerReady && dueValid)
+
+    const canConfirm = !submitting && !amountsInvalid && total !== null && total > 0 && paid === total && deniOk
 
     function handlePay(method, text) {
         setTouched(true)
@@ -103,6 +120,8 @@ function Sell({ shop }) {
         setDone(null)
         setTouched(false)
         setReceived('')
+        setCustomer(null)
+        setDueDate('')
         setError('')
         setConflict(false)
         pendingKey.current = null
@@ -116,8 +135,14 @@ function Sell({ shop }) {
 
         const body = {
             lines: described.map((d) => ({ itemId: d.itemId, quantity: d.qty })),
-            allocations: METHODS.filter((m) => amounts[m.value] > 0)
+            allocations: SALE_METHODS.filter((m) => amounts[m.value] > 0)
                 .map((m) => ({ method: m.value, amountMinor: amounts[m.value] })),
+        }
+        if (deniMinor > 0) {
+            body.customer = customer.mode === 'existing'
+                ? { name: customer.customer.name, phone: customer.customer.phone }
+                : { name: customer.name.trim(), phone: customer.phone }
+            body.dueDate = due
         }
 
         try {
@@ -160,6 +185,14 @@ function Sell({ shop }) {
         return (
             <div>
                 <h1 className="font-display text-4xl font-medium tracking-tight">Sale recorded</h1>
+                {done.deni?.overLimit && (
+                    <div className="mt-6 max-w-md">
+                        <Alert>
+                            {done.deni.customerName} now owes {formatKsh(done.deni.customerOutstandingMinor)}, above the limit
+                            of {formatKsh(done.deni.creditLimitMinor)}.
+                        </Alert>
+                    </div>
+                )}
                 <div className="mt-6 max-w-md"><Receipt sale={done} shopName={shop.name} /></div>
                 <div className="no-print mt-6 flex flex-wrap gap-3">
                     <Button onClick={startNewSale}>New sale</Button>
@@ -256,6 +289,18 @@ function Sell({ shop }) {
                         onConfirm={confirm}
                         error={error}
                         blocked={conflict}
+                        deniMissing={deniMinor > 0 && !deniOk}
+                        deniSection={
+                            <DeniSection
+                                shopId={shop.id}
+                                customer={customer}
+                                onCustomer={setCustomer}
+                                dueDate={due}
+                                onDueDate={setDueDate}
+                                today={today}
+                                deniMinor={deniMinor}
+                            />
+                        }
                     />
                 </>
             )}

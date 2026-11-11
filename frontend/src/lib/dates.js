@@ -25,3 +25,19 @@ const timeFormat = new Intl.DateTimeFormat('en-KE', {
 })
 
 export const formatTime = (iso) => timeFormat.format(new Date(iso))
+
+const shortDay = new Intl.DateTimeFormat('en-KE', {
+    timeZone: 'Africa/Nairobi',
+    day: 'numeric',
+    month: 'short',
+})
+
+/** "2026-11-06" -> "6 Nov" */
+export const formatShortDate = (isoDate) => shortDay.format(new Date(`${isoDate}T12:00:00+03:00`))
+
+/** "2026-10-23" + 14 -> "2026-11-06". Pure calendar arithmetic, so no time zone can shift it. */
+export function addDays(isoDate, days) {
+    const date = new Date(`${isoDate}T00:00:00Z`)
+    date.setUTCDate(date.getUTCDate() + days)
+    return date.toISOString().slice(0, 10)
+}
