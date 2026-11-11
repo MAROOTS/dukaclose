@@ -1,4 +1,3 @@
-// DebtViews.java
 package com.dukaclose.api.deni;
 
 import java.time.Instant;
@@ -21,8 +20,11 @@ public final class DebtViews {
 
     public record PaymentAllocationLine(UUID debtId, long receiptNo, long amountMinor) {}
 
+    public record PaymentReversalView(String reason, String reversedByName, Instant reversedAt) {}
+
     public record PaymentLine(UUID paymentId, CollectionMethod method, long amountMinor, String receivedByName,
-                              String shopName, Instant createdAt, List<PaymentAllocationLine> allocations) {}
+                              String shopName, Instant createdAt, List<PaymentAllocationLine> allocations,
+                              PaymentReversalView reversal) {}
 
     public record WriteOffLine(UUID debtId, long receiptNo, long amountMinor, String reason,
                                String writtenOffByName, Instant createdAt) {}
@@ -31,4 +33,7 @@ public final class DebtViews {
                                  List<PaymentLine> payments, List<WriteOffLine> writeOffs) {}
 
     public record WriteOffResponse(DebtLine debt, long customerOutstandingMinor) {}
+
+    public record PaymentPage(LocalDate date, List<PaymentResponse> items, int page, int size,
+                              long totalElements, int totalPages) {}
 }

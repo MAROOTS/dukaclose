@@ -27,20 +27,23 @@ public class DebtLedgerService {
 
     /** Customers who owe something, with the overdue part and the earliest due date. Params: today, business id. */
     private static final String GROUPED = """
-            SELECT c.id, c.name, c.phone, c.credit_limit_minor,
-                   SUM(b.balance) AS outstanding,
-                   COALESCE(SUM(b.balance) FILTER (WHERE b.due_date < ?), 0) AS overdue,
-                   MIN(b.due_date) AS next_due
-              FROM (SELECT d.customer_id, d.due_date,
-                           d.original_amount_minor
-                             - COALESCE((SELECT SUM(a.amount_minor) FROM debt_payment_allocations a WHERE a.debt_id = d.id), 0)
-                             - COALESCE((SELECT SUM(w.amount_minor) FROM debt_write_offs w WHERE w.debt_id = d.id), 0) AS balance
-                      FROM customer_debts d
-                     WHERE d.business_id = ? AND d.status = 'ACTIVE') b
-              JOIN customers c ON c.id = b.customer_id
-             WHERE b.balance > 0
-             GROUP BY c.id, c.name, c.phone, c.credit_limit_minor
-            """;
+        SELECT c.id, c.name, c.phone, c.credit_limit_minor,
+               SUM(b.balance) AS outstanding,
+               COALESCE(SUM(b.balance) FILTER (WHERE b.due_date < ?), 0) AS overdue,
+               MIN(b.due_date) AS next_due
+          FROM (SELECT d.customer_id, d.due_date,
+                       d.original_amount_minor
+                         - COALESCE((SELECT SUM(a.amount_minor) FROM debt_payment_allocations a
+                                      WHERE a.debt_id = d.id
+                                        AND NOT EXISTS (SELECT 1 FROM debt_payment_reversals r
+                                                         WHERE r.payment_id = a.payment_id)), 0)
+                         - COALESCE((SELECT SUM(w.amount_minor) FROM debt_write_offs w WHERE w.debt_id = d.id), 0) AS balance
+                  FROM customer_debts d
+                 WHERE d.business_id = ? AND d.status = 'ACTIVE') b
+          JOIN customers c ON c.id = b.customer_id
+         WHERE b.balance > 0
+         GROUP BY c.id, c.name, c.phone, c.credit_limit_minor
+        """;
 
     private final AccessService access;
     private final CustomerRepository customers;
@@ -54,6 +57,7 @@ public class DebtLedgerService {
     private final UserRepository users;
     private final BusinessClock clock;
     private final JdbcTemplate jdbc;
+    private final DebtPaymentReversalRepository paymentReversals;
 
     // ---------------------------------------------------------------- the ledger
 
@@ -98,7 +102,9 @@ public class DebtLedgerService {
         Map<UUID, List<DebtPaymentAllocation>> partsByPayment = paymentAllocations
                 .findByPaymentIdIn(recentPayments.stream().map(DebtPayment::getId).toList()).stream()
                 .collect(Collectors.groupingBy(DebtPaymentAllocation::getPaymentId));
-
+        Map<UUID, DebtPaymentReversal> reversalByPayment = paymentReversals
+                .findByPaymentIdIn(recentPayments.stream().map(DebtPayment::getId).toList()).stream()
+                .collect(Collectors.toMap(DebtPaymentReversal::getPaymentId, Function.identity()));
         // payments and write-offs can refer to debts older than the 100 shown, so load every debt we mention
         Set<UUID> debtIds = new HashSet<>();
         recentDebts.forEach(d -> debtIds.add(d.getId()));
@@ -117,6 +123,7 @@ public class DebtLedgerService {
         Set<UUID> userIds = new HashSet<>();
         recentPayments.forEach(p -> userIds.add(p.getReceivedBy()));
         recentOffs.forEach(w -> userIds.add(w.getWrittenOffBy()));
+        reversalByPayment.values().forEach(r -> userIds.add(r.getReversedBy()));
         Map<UUID, String> names = users.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getDisplayName));
 
@@ -124,6 +131,11 @@ public class DebtLedgerService {
         List<DebtLine> debtLines = recentDebts.stream()
                 .map(d -> line(d, balances.get(d.getId()), saleMap, shopNames, today)).toList();
 
+        Function<UUID, PaymentReversalView> reversalView = paymentId -> {
+            DebtPaymentReversal r = reversalByPayment.get(paymentId);
+            return r == null ? null
+                    : new PaymentReversalView(r.getReason(), names.getOrDefault(r.getReversedBy(), ""), r.getCreatedAt());
+        };
         List<PaymentLine> paymentLines = recentPayments.stream().map(p -> new PaymentLine(
                 p.getId(), p.getMethod(), p.getAmountMinor(), names.getOrDefault(p.getReceivedBy(), ""),
                 shopNames.getOrDefault(p.getShopId(), ""), p.getCreatedAt(),
@@ -131,7 +143,8 @@ public class DebtLedgerService {
                         .sorted(Comparator.comparing((DebtPaymentAllocation a) -> debtMap.get(a.getDebtId()).getDueDate()))
                         .map(a -> new PaymentAllocationLine(a.getDebtId(),
                                 saleMap.get(debtMap.get(a.getDebtId()).getSaleId()).getReceiptNo(), a.getAmountMinor()))
-                        .toList())).toList();
+                        .toList(),
+                reversalView.apply(p.getId()))).toList();
 
         List<WriteOffLine> offLines = recentOffs.stream().map(w -> new WriteOffLine(
                 w.getDebtId(), saleMap.get(debtMap.get(w.getDebtId()).getSaleId()).getReceiptNo(),

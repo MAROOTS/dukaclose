@@ -41,7 +41,7 @@ public class DebtService {
     @Transactional
     public void lockAndCheckReversible(UUID saleId) {
         debts.findBySaleIdForUpdate(saleId).ifPresent(debt -> {
-            if (allocations.existsByDebtId(debt.getId()) || writeOffs.existsByDebtId(debt.getId())) {
+            if (allocations.existsActiveByDebtId(debt.getId()) || writeOffs.existsByDebtId(debt.getId())) {
                 throw ApiException.conflict("DEBT_HAS_PAYMENTS",
                         "The customer has already paid something against this deni, so the sale cannot be reversed here. "
                                 + "Ask the owner.");

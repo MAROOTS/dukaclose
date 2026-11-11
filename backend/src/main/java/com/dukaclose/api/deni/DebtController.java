@@ -1,10 +1,14 @@
 package com.dukaclose.api.deni;
 
 import com.dukaclose.api.auth.AppUserDetails;
+import com.dukaclose.api.common.ReasonRequest;
 import com.dukaclose.api.deni.DebtViews.*;
 import jakarta.validation.Valid;
+
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -47,5 +51,20 @@ public class DebtController {
     public WriteOffResponse writeOff(@AuthenticationPrincipal AppUserDetails me, @PathVariable UUID businessId,
                                      @PathVariable UUID debtId, @Valid @RequestBody WriteOffRequest body) {
         return writeOffService.writeOff(me.userId(), businessId, debtId, body);
+    }
+
+    /** Repayments collected on a day (default: the current day), newest first. */
+    @GetMapping("/shops/{shopId}/debt-payments")
+    public DebtViews.PaymentPage payments(@AuthenticationPrincipal AppUserDetails me, @PathVariable UUID shopId,
+                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                          @RequestParam(defaultValue = "0") int page,
+                                          @RequestParam(defaultValue = "20") int size) {
+        return paymentService.list(me.userId(), shopId, date, page, size);
+    }
+
+    @PostMapping("/shops/{shopId}/debt-payments/{paymentId}/reverse")
+    public PaymentResponse reversePayment(@AuthenticationPrincipal AppUserDetails me, @PathVariable UUID shopId,
+                                          @PathVariable UUID paymentId, @Valid @RequestBody ReasonRequest body) {
+        return paymentService.reverse(me.userId(), shopId, paymentId, body.reason());
     }
 }
