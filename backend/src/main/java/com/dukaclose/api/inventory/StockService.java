@@ -36,7 +36,7 @@ public class StockService {
   public  record Mismatch(UUID itemId, BigDecimal onHand, BigDecimal ledgerSum) {}
 
     private UUID openDayId(UUID shopId) {
-        return days.findByShopIdAndStatus(shopId, DayStatus.OPEN).map(ShopDay::getId).orElse(null);
+        return days.findLockedForShare(shopId, DayStatus.OPEN).map(ShopDay::getId).orElse(null);
     }
 
     // ------------------------------------------------------------------ stock in

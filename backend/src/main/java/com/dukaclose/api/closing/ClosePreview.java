@@ -49,10 +49,12 @@ public record ClosePreview(
 
     public record StockBlock(List<ItemSold> itemsSold, List<LowStock> lowStock, List<AdjustmentLine> adjustments) {}
 
-    /** differenceMinor = counted - expected: negative means the drawer is short. Null unless the count is current. */
+    /** differenceMinor = counted - expected: negative means the drawer is short. Null unless the count is current.
+     *  floatDifferenceMinor = opening float - what the last close counted (null on the very first day). */
     public record Drawer(long openingFloatMinor, long cashSalesMinor, long cashCollectionsMinor,
                          long otherCashInMinor, long cashOutMinor, long expectedMinor,
-                         Long countedMinor, Long differenceMinor, int countNumber, boolean countCurrent) {}
+                         Long countedMinor, Long differenceMinor, int countNumber, boolean countCurrent,
+                         Long carriedOverMinor, Long floatDifferenceMinor) {}
 
     /** Owner only. writeOffs and shrinkage are shown separately and are NOT subtracted from the estimate. */
     public record Profit(long netSalesMinor, long costOfGoodsSoldMinor, long grossProfitMinor,
@@ -62,4 +64,9 @@ public record ClosePreview(
     /** Owner only: every count that was made today, oldest first. */
     public record CountLine(int countNumber, long countedMinor, long expectedMinor, long differenceMinor,
                             String countedByName, Instant createdAt, boolean current) {}
+    /** What a cashier may read: the same preview without profit, shrinkage, write-offs or the list of counts. */
+    public ClosePreview withoutOwnerFigures() {
+        return new ClosePreview(shopId, shopName, dayId, businessDate, stale, openedAt, openedByName, activityToken,
+                sales, collections, money, deni, stock, drawer, null, null);
+    }
 }

@@ -6,4 +6,5 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record ShopDayResponse(UUID id, UUID shopId, LocalDate businessDate, DayStatus status,
-                              long openingFloatMinor, String openedByName, Instant openedAt, boolean stale) {}
+                              long openingFloatMinor, String openedByName, Instant openedAt, boolean stale,
+                              Long carriedOverMinor, Long floatDifferenceMinor) {}

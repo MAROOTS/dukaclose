@@ -24,13 +24,19 @@ public class ShopDay extends BaseEntity {
 
     @Column(nullable = false) private long openingFloatMinor;
     @Column(nullable = false) private UUID openedBy;
+    @Column(updatable = false) private Long carriedOverMinor;
 
     public ShopDay(UUID shopId, UUID businessId, LocalDate businessDate, long openingFloatMinor, UUID openedBy) {
+        this(shopId, businessId, businessDate, openingFloatMinor, openedBy, null);
+    }
+    public ShopDay(UUID shopId, UUID businessId, LocalDate businessDate, long openingFloatMinor, UUID openedBy,
+                   Long carriedOverMinor) {
         this.shopId = shopId;
         this.businessId = businessId;
         this.businessDate = businessDate;
         this.openingFloatMinor = openingFloatMinor;
         this.openedBy = openedBy;
+        this.carriedOverMinor = carriedOverMinor;
     }
 
     public void markClosed() {

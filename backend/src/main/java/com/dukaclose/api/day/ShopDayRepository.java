@@ -18,4 +18,7 @@ public interface ShopDayRepository extends JpaRepository<ShopDay, UUID> {
     @Query("select d from ShopDay d where d.shopId = :shopId and d.status = :status")
     Optional<ShopDay> findLockedForShare(@Param("shopId") UUID shopId, @Param("status") DayStatus status);
     Optional<ShopDay> findByShopIdAndBusinessDate(UUID shopId, LocalDate businessDate);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select d from ShopDay d where d.shopId = :shopId and d.status = :status")
+    Optional<ShopDay> findLockedForUpdate(@Param("shopId") UUID shopId, @Param("status") DayStatus status);
 }

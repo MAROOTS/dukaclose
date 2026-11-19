@@ -135,7 +135,9 @@ public class ClosePreviewService {
                     c.otherCashInMinor(), c.cashMoneyOutMinor(), c.expectedCashMinor(),
                     latest == null ? null : latest.getCountedMinor(),
                     current ? latest.getCountedMinor() - c.expectedCashMinor() : null,
-                    all.size(), current);
+                    all.size(), current,
+                    day.getCarriedOverMinor(),
+                    day.getCarriedOverMinor() == null ? null : c.openingFloatMinor() - day.getCarriedOverMinor());
         }
 
         // ---- owner-only figures ----
