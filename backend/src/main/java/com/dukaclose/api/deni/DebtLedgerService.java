@@ -61,6 +61,9 @@ public class DebtLedgerService {
     private final JdbcTemplate jdbc;
     private final DebtPaymentReversalRepository paymentReversals;
     private final ShopDayRepository days;
+
+    public record Totals(long outstandingMinor, long overdueMinor, long customerCount) {}
+
     // ---------------------------------------------------------------- the ledger
 
     @Transactional(readOnly = true)
@@ -87,6 +90,16 @@ public class DebtLedgerService {
 
         int totalPages = (int) ((totals[2] + s - 1) / s);
         return new LedgerPage(today, totals[0], totals[1], totals[2], rows, p, s, totalPages);
+    }
+
+    /** Business-wide: what customers owe right now, how much of it is overdue, and how many customers. */
+    @Transactional(readOnly = true)
+    public Totals totals(UUID businessId) {
+        long[] t = jdbc.queryForObject(
+                "SELECT COALESCE(SUM(outstanding), 0), COALESCE(SUM(overdue), 0), COUNT(*) FROM (" + GROUPED + ") t",
+                (rs, i) -> new long[]{rs.getLong(1), rs.getLong(2), rs.getLong(3)},
+                clock.today(), businessId);
+        return new Totals(t[0], t[1], t[2]);
     }
 
     // ------------------------------------------------------------ one customer
