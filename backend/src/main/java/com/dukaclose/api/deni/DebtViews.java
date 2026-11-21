@@ -15,7 +15,7 @@ public final class DebtViews {
                              List<LedgerRow> items, int page, int size, int totalPages) {}
 
     public record DebtLine(UUID debtId, UUID saleId, long receiptNo, String shopName, long originalMinor,
-                           long paidMinor, long writtenOffMinor, long balanceMinor, LocalDate dueDate,
+                           long paidMinor, long writtenOffMinor,long creditedMinor, long balanceMinor, LocalDate dueDate,
                            boolean overdue, boolean voided, Instant createdAt) {}
 
     public record PaymentAllocationLine(UUID debtId, long receiptNo, long amountMinor) {}

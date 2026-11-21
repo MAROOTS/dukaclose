@@ -206,11 +206,16 @@ function Sell({ shop }) {
     if (!status) return <Alert>{dayError || 'Could not load today’s book.'}</Alert>
 
     if (!status.openDay) {
+        const closedToday = status.lastCloseDate === status.today
         return (
             <div className="max-w-md">
-                <h1 className="font-display text-4xl font-medium tracking-tight">Open today’s book first</h1>
+                <h1 className="font-display text-4xl font-medium tracking-tight">
+                    {closedToday ? 'Today’s book is closed' : 'Open today’s book first'}
+                </h1>
                 <p className="mt-3 text-ink-soft">
-                    Sales are recorded against an open day. Count the drawer and open the day on the Home page.
+                    {closedToday
+                        ? 'Nothing more can be recorded today. A new day can be opened tomorrow.'
+                        : 'Sales are recorded against an open day. Count the drawer and open the day on the Home page.'}
                 </p>
                 <Link to="/" className={`${buttonClass()} mt-6`}>Go to Home</Link>
             </div>

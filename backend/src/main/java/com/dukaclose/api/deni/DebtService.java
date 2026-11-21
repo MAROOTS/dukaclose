@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -20,11 +21,12 @@ public class DebtService {
     private final CustomerDebtRepository debts;
     private final DebtPaymentAllocationRepository allocations;
     private final DebtWriteOffRepository writeOffs;
+    private final DebtCreditRepository credits;
 
-    /** What one debt looks like: what it was, what was paid, what was written off. */
-    public record Balance(long originalMinor, long paidMinor, long writtenOffMinor) {
+    /** What one debt looks like: what it was, what was paid, written off and credited by refunds. */
+    public record Balance(long originalMinor, long paidMinor, long writtenOffMinor, long creditedMinor) {
         public long outstandingMinor() {
-            return originalMinor - paidMinor - writtenOffMinor;
+            return originalMinor - paidMinor - writtenOffMinor - creditedMinor;
         }
     }
 
@@ -36,12 +38,13 @@ public class DebtService {
 
     /**
      * Called before a sale is reversed. Locks the debt, so a repayment arriving at the same moment must wait,
-     * and refuses when the customer has already paid or been written off against it.
+     * and refuses when the customer has already paid, been written off or credited against it.
      */
     @Transactional
     public void lockAndCheckReversible(UUID saleId) {
         debts.findBySaleIdForUpdate(saleId).ifPresent(debt -> {
-            if (allocations.existsActiveByDebtId(debt.getId()) || writeOffs.existsByDebtId(debt.getId())) {
+            if (allocations.existsActiveByDebtId(debt.getId()) || writeOffs.existsByDebtId(debt.getId())
+                    || credits.existsByDebtId(debt.getId())) {
                 throw ApiException.conflict("DEBT_HAS_PAYMENTS",
                         "The customer has already paid something against this deni, so the sale cannot be reversed here. "
                                 + "Ask the owner.");
@@ -53,6 +56,17 @@ public class DebtService {
     @Transactional
     public void voidForSale(UUID saleId) {
         debts.findBySaleIdForUpdate(saleId).ifPresent(CustomerDebt::markVoid);
+    }
+
+    /** Locks the debt of a sale, if it has one. Used by refunds, in the same lock order as reversals. */
+    @Transactional
+    public Optional<CustomerDebt> lockForSale(UUID saleId) {
+        return debts.findBySaleIdForUpdate(saleId);
+    }
+
+    @Transactional
+    public DebtCredit credit(UUID businessId, CustomerDebt debt, UUID refundId, long amountMinor) {
+        return credits.save(new DebtCredit(businessId, debt.getId(), debt.getCustomerId(), refundId, amountMinor));
     }
 
     @Transactional(readOnly = true)
@@ -68,15 +82,16 @@ public class DebtService {
         List<UUID> ids = list.stream().map(CustomerDebt::getId).toList();
         Map<UUID, Long> paid = toMap(allocations.sumByDebt(ids));
         Map<UUID, Long> off = toMap(writeOffs.sumByDebt(ids));
+        Map<UUID, Long> credited = toMap(credits.sumByDebt(ids));
         for (CustomerDebt d : list) {
-            result.put(d.getId(), new Balance(d.getOriginalAmountMinor(),
-                    paid.getOrDefault(d.getId(), 0L), off.getOrDefault(d.getId(), 0L)));
+            result.put(d.getId(), new Balance(d.getOriginalAmountMinor(), paid.getOrDefault(d.getId(), 0L),
+                    off.getOrDefault(d.getId(), 0L), credited.getOrDefault(d.getId(), 0L)));
         }
         return result;
     }
 
     /**
-     * What each customer owes right now: active debts, less repayments, less write-offs.
+     * What each customer owes right now: active debts, less repayments, write-offs and refund credits.
      * Every screen that shows a balance gets it from here. Customers who owe nothing are simply absent.
      */
     @Transactional(readOnly = true)
@@ -86,8 +101,9 @@ public class DebtService {
         Map<UUID, Long> original = toMap(debts.activeTotals(customerIds));
         Map<UUID, Long> paid = toMap(allocations.sumByCustomer(customerIds));
         Map<UUID, Long> off = toMap(writeOffs.sumByCustomer(customerIds));
-        original.forEach((id, total) ->
-                result.put(id, total - paid.getOrDefault(id, 0L) - off.getOrDefault(id, 0L)));
+        Map<UUID, Long> credited = toMap(credits.sumByCustomer(customerIds));
+        original.forEach((id, total) -> result.put(id,
+                total - paid.getOrDefault(id, 0L) - off.getOrDefault(id, 0L) - credited.getOrDefault(id, 0L)));
         return result;
     }
 

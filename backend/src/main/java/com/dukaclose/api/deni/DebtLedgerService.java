@@ -39,7 +39,8 @@ public class DebtLedgerService {
                                       WHERE a.debt_id = d.id
                                         AND NOT EXISTS (SELECT 1 FROM debt_payment_reversals r
                                                          WHERE r.payment_id = a.payment_id)), 0)
-                         - COALESCE((SELECT SUM(w.amount_minor) FROM debt_write_offs w WHERE w.debt_id = d.id), 0) AS balance
+                         - COALESCE((SELECT SUM(w.amount_minor) FROM debt_write_offs w WHERE w.debt_id = d.id), 0) 
+                         - COALESCE((SELECT SUM(c.amount_minor) FROM debt_credits c WHERE c.debt_id = d.id), 0) AS balance
                   FROM customer_debts d
                  WHERE d.business_id = ? AND d.status = 'ACTIVE') b
           JOIN customers c ON c.id = b.customer_id
@@ -193,7 +194,7 @@ public class DebtLedgerService {
         long balance = voided ? 0 : b.outstandingMinor();
         return new DebtLine(d.getId(), d.getSaleId(), saleMap.get(d.getSaleId()).getReceiptNo(),
                 shopNames.getOrDefault(d.getShopId(), ""), d.getOriginalAmountMinor(), b.paidMinor(),
-                b.writtenOffMinor(), balance, d.getDueDate(), !voided && balance > 0 && d.getDueDate().isBefore(today),
-                voided, d.getCreatedAt());
+                b.writtenOffMinor(), b.creditedMinor(), balance, d.getDueDate(),
+                !voided && balance > 0 && d.getDueDate().isBefore(today), voided, d.getCreatedAt());
     }
 }

@@ -1,4 +1,3 @@
 package com.dukaclose.api.inventory;
 
-public enum MovementType { OPENING, RECEIPT, ADJUSTMENT, SALE, SALE_REVERSAL }
-
+public enum MovementType { OPENING, RECEIPT, ADJUSTMENT, SALE, SALE_REVERSAL, SALE_REFUND }

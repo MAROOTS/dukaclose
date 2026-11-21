@@ -14,6 +14,10 @@ import SellPage from './pages/SellPage'
 import CustomerPage from './pages/CustomerPage'
 import DeniPage from './pages/DeniPage'
 import MoneyPage from './pages/MoneyPage'
+import ClosedDayPage from './pages/ClosedDayPage'
+import CloseDayPage from './pages/CloseDayPage'
+import ClosesPage from './pages/ClosesPage'
+
 export default function App() {
     return (
         <Routes>
@@ -34,6 +38,9 @@ export default function App() {
                     <Route path="deni" element={<DeniPage />} />
                     <Route path="deni/:customerId" element={<CustomerPage />} />
                     <Route path="money" element={<MoneyPage />} />
+                    <Route path="close" element={<CloseDayPage />} />
+                    <Route path="closes" element={<ClosesPage />} />
+                    <Route path="closes/:date" element={<ClosedDayPage />} />
                 </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

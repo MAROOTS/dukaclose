@@ -18,8 +18,8 @@ import java.util.UUID;
 public record ClosePreview(
         UUID shopId, String shopName, UUID dayId, LocalDate businessDate, boolean stale,
         Instant openedAt, String openedByName, String activityToken,
-        Sales sales, CollectionsBlock collections, MoneyBlock money, DeniBlock deni, StockBlock stock,
-        Drawer drawer, Profit profit, List<CountLine> counts) {
+        Sales sales, CollectionsBlock collections, Refunds refunds, MoneyBlock money, DeniBlock deni,
+        StockBlock stock, Drawer drawer, Profit profit, List<CountLine> counts) {
 
     /** Sales that stand (reversed ones are shown separately). Deni is part of sales, not money received. */
     public record Sales(long count, long totalMinor, long cashMinor, long pochiMinor, long tillMinor,
@@ -28,6 +28,10 @@ public record ClosePreview(
     /** Repayments of earlier deni. Never sales. */
     public record CollectionsBlock(long count, long cashMinor, long pochiMinor, long tillMinor,
                                    long totalMinor, long reversedCount) {}
+
+    /** Refunds of earlier days' sales, recorded on this day. They reduce net sales and pay money back. */
+    public record Refunds(long count, long totalMinor, long cashMinor, long pochiMinor, long tillMinor,
+                          long deniCreditMinor) {}
 
     public record CategoryTotal(MoneyCategory category, MoneyDirection direction, long totalMinor,
                                 boolean operatingExpense) {}
@@ -50,13 +54,15 @@ public record ClosePreview(
     public record StockBlock(List<ItemSold> itemsSold, List<LowStock> lowStock, List<AdjustmentLine> adjustments) {}
 
     /** differenceMinor = counted - expected: negative means the drawer is short. Null unless the count is current.
-     *  floatDifferenceMinor = opening float - what the last close counted (null on the very first day). */
+     *  floatDifferenceMinor = opening float - what the last close counted (null on the very first day).
+     *  cashRefundsMinor is null in snapshots stored before refunds existed. */
     public record Drawer(long openingFloatMinor, long cashSalesMinor, long cashCollectionsMinor,
                          long otherCashInMinor, long cashOutMinor, long expectedMinor,
                          Long countedMinor, Long differenceMinor, int countNumber, boolean countCurrent,
-                         Long carriedOverMinor, Long floatDifferenceMinor) {}
+                         Long carriedOverMinor, Long floatDifferenceMinor, UUID countId, Long cashRefundsMinor) {}
 
-    /** Owner only. writeOffs and shrinkage are shown separately and are NOT subtracted from the estimate. */
+    /** Owner only. writeOffs and shrinkage are shown separately and are NOT subtracted from the estimate.
+     *  netSales is after refunds, and costOfGoodsSold is after the cost of goods put back on the shelf. */
     public record Profit(long netSalesMinor, long costOfGoodsSoldMinor, long grossProfitMinor,
                          long operatingExpensesMinor, long estimatedProfitMinor, long shrinkageMinor,
                          long writeOffsMinor) {}
@@ -64,9 +70,10 @@ public record ClosePreview(
     /** Owner only: every count that was made today, oldest first. */
     public record CountLine(int countNumber, long countedMinor, long expectedMinor, long differenceMinor,
                             String countedByName, Instant createdAt, boolean current) {}
+
     /** What a cashier may read: the same preview without profit, shrinkage, write-offs or the list of counts. */
     public ClosePreview withoutOwnerFigures() {
         return new ClosePreview(shopId, shopName, dayId, businessDate, stale, openedAt, openedByName, activityToken,
-                sales, collections, money, deni, stock, drawer, null, null);
+                sales, collections, refunds, money, deni, stock, drawer, null, null);
     }
 }

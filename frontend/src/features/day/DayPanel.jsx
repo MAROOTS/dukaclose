@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../../api/client'
 import { useShopDay } from '../../hooks/useShopDay'
-import { formatBusinessDate, formatDateTime } from '../../lib/dates'
-import { formatKsh, parseKshToMinor } from '../../lib/money'
+import { formatBusinessDate, formatDateTime, formatShortDate } from '../../lib/dates'
+import { formatKsh, minorToInput, parseKshToMinor } from '../../lib/money'
 import Alert from '../../ui/Alert'
 import Button, { buttonClass } from '../../ui/Button'
 import Field from '../../ui/Field'
@@ -20,16 +20,19 @@ function Page({ children }) {
 
 export default function DayPanel({ shop }) {
     const { status, loading, error: loadError, reload } = useShopDay(shop.id)
-    const [float, setFloat] = useState('')
+    const [float, setFloat] = useState(null) // null means untouched: show the suggestion from the last close
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
+
+    const suggested = status?.suggestedFloatMinor ?? null
+    const floatValue = float ?? (suggested !== null ? minorToInput(suggested) : '')
 
     async function handleOpen(event) {
         event.preventDefault()
         if (submitting) return
         setError('')
 
-        const openingFloatMinor = parseKshToMinor(float)
+        const openingFloatMinor = parseKshToMinor(floatValue)
         if (openingFloatMinor === null) {
             setError('Enter the cash in the drawer, like 2000. Use 0 if it is empty.')
             return
@@ -69,6 +72,7 @@ export default function DayPanel({ shop }) {
     const day = status.openDay
 
     if (day) {
+        const floatDiff = day.floatDifferenceMinor // only the owner receives this
         return (
             <Page>
                 <h2 className="font-display text-2xl font-medium">Today’s book is open</h2>
@@ -94,10 +98,34 @@ export default function DayPanel({ shop }) {
                         </Alert>
                     </div>
                 )}
+                {floatDiff !== null && floatDiff !== undefined && floatDiff !== 0 && (
+                    <div className="mt-6 max-w-md">
+                        <Alert>
+                            The opening float is {formatKsh(Math.abs(floatDiff))} {floatDiff > 0 ? 'more' : 'less'} than the
+                            last close counted ({formatKsh(day.carriedOverMinor)}).
+                        </Alert>
+                    </div>
+                )}
 
                 <div className="mt-6 flex flex-wrap gap-3">
                     <Link to="/sell" className={buttonClass()}>New sale</Link>
                     <Link to="/sales" className={`${buttonClass('quiet')} border border-line-strong`}>Today’s sales</Link>
+                    <Link to="/close" className={`${buttonClass('quiet')} border border-line-strong`}>Close day</Link>
+                </div>
+            </Page>
+        )
+    }
+
+    if (status.lastCloseDate === status.today) {
+        return (
+            <Page>
+                <h2 className="font-display text-2xl font-medium">Today’s book is closed</h2>
+                <p className="mt-2 max-w-sm text-ink-soft">
+                    Nothing more can be added to {formatBusinessDate(status.today)}. A new day can be opened tomorrow.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                    <Link to={`/closes/${status.today}`} className={buttonClass()}>See today’s close</Link>
+                    <Link to="/closes" className={`${buttonClass('quiet')} border border-line-strong`}>Past days</Link>
                 </div>
             </Page>
         )
@@ -115,7 +143,10 @@ export default function DayPanel({ shop }) {
                     label="Cash in the drawer (KSh)"
                     inputMode="decimal"
                     placeholder="e.g. 2000"
-                    value={float}
+                    hint={suggested !== null
+                        ? `The last close counted ${formatKsh(suggested)} on ${formatShortDate(status.lastCloseDate)}. Change it if the drawer holds something different.`
+                        : undefined}
+                    value={floatValue}
                     onChange={(e) => setFloat(e.target.value)}
                 />
                 {error && <Alert>{error}</Alert>}

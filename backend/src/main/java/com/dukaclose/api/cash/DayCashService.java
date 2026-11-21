@@ -14,8 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * What the drawer should hold, worked out from the saved records. Reversed entries never count.
- * Deliberately NOT exposed through any endpoint yet. It has no access check, and Phase 5 decides who may
- * see the expected figure (a cashier who sees it while counting could simply type it back).
+ * Deliberately NOT exposed through any endpoint. It has no access check, and the close preview decides who may
+ * see the expected figure.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,6 +31,8 @@ public class DayCashService {
             long otherCashInMinor,
             long cashMoneyOutMinor,
             long operatingExpensesMinor, long stockPurchasesMinor, long floatMovementsMinor,
+            long refundCount, long refundsTotalMinor, long refundDebtCreditMinor,
+            long cashRefundsMinor, long pochiRefundsMinor, long tillRefundsMinor,
             long expectedCashMinor) {
 
         public long totalSalesMinor() {
@@ -55,6 +57,16 @@ public class DayCashService {
                    AND NOT EXISTS (SELECT 1 FROM debt_payment_reversals r WHERE r.payment_id = p.id)
                  GROUP BY p.method""", shopDayId);
 
+        // Refunds of earlier days' sales, recorded today. Only what was actually paid back moves money.
+        Map<String, Long> refundPayouts = byMethod("""
+                SELECT p.method, SUM(p.amount_minor) FROM sale_refund_payouts p
+                  JOIN sale_refunds r ON r.id = p.refund_id
+                 WHERE r.shop_day_id = ? GROUP BY p.method""", shopDayId);
+        long[] refunds = jdbc.queryForObject("""
+                SELECT COUNT(*), COALESCE(SUM(total_minor), 0), COALESCE(SUM(debt_credit_minor), 0)
+                  FROM sale_refunds WHERE shop_day_id = ?""",
+                (rs, i) -> new long[]{rs.getLong(1), rs.getLong(2), rs.getLong(3)}, shopDayId);
+
         long otherCashIn = 0, cashOut = 0, operating = 0, stockPurchases = 0, floatMoves = 0;
         for (Map<String, Object> row : jdbc.queryForList("""
                 SELECT m.direction, m.category, m.method, SUM(m.amount_minor) AS total FROM money_movements m
@@ -78,12 +90,16 @@ public class DayCashService {
 
         long cashSales = sales.getOrDefault("CASH", 0L);
         long cashCollections = collections.getOrDefault("CASH", 0L);
-        long expected = day.getOpeningFloatMinor() + cashSales + cashCollections + otherCashIn - cashOut;
+        long cashRefunds = refundPayouts.getOrDefault("CASH", 0L);
+        long expected = day.getOpeningFloatMinor() + cashSales + cashCollections + otherCashIn - cashOut - cashRefunds;
 
         return new Summary(day.getOpeningFloatMinor(),
                 cashSales, sales.getOrDefault("POCHI", 0L), sales.getOrDefault("TILL", 0L), sales.getOrDefault("DENI", 0L),
                 cashCollections, collections.getOrDefault("POCHI", 0L), collections.getOrDefault("TILL", 0L),
-                otherCashIn, cashOut, operating, stockPurchases, floatMoves, expected);
+                otherCashIn, cashOut, operating, stockPurchases, floatMoves,
+                refunds[0], refunds[1], refunds[2],
+                cashRefunds, refundPayouts.getOrDefault("POCHI", 0L), refundPayouts.getOrDefault("TILL", 0L),
+                expected);
     }
 
     private Map<String, Long> byMethod(String sql, UUID dayId) {

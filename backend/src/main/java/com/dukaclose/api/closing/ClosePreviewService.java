@@ -48,7 +48,7 @@ public class ClosePreviewService {
         return build(ctx.shop(), day, ctx.role() == Role.OWNER);
     }
 
-    /** Package-private: the close (Step 20) builds the owner's full version to store as the snapshot. */
+    /** Package-private: the close builds the owner's full version to store as the snapshot. */
     ClosePreview build(Shop shop, ShopDay day, boolean owner) {
         UUID dayId = day.getId();
         DayCashService.Summary c = cash.summary(dayId);
@@ -73,6 +73,10 @@ public class ClosePreviewService {
         ClosePreview.CollectionsBlock collections = new ClosePreview.CollectionsBlock(collectionCount,
                 c.cashCollectionsMinor(), c.pochiCollectionsMinor(), c.tillCollectionsMinor(),
                 collectedTotal, reversedCollections);
+
+        // ---- refunds of earlier days' sales, recorded today ----
+        ClosePreview.Refunds refunds = new ClosePreview.Refunds(c.refundCount(), c.refundsTotalMinor(),
+                c.cashRefundsMinor(), c.pochiRefundsMinor(), c.tillRefundsMinor(), c.refundDebtCreditMinor());
 
         // ---- money in and out ----
         List<ClosePreview.CategoryTotal> byCategory = jdbc.query("""
@@ -137,16 +141,23 @@ public class ClosePreviewService {
                     current ? latest.getCountedMinor() - c.expectedCashMinor() : null,
                     all.size(), current,
                     day.getCarriedOverMinor(),
-                    day.getCarriedOverMinor() == null ? null : c.openingFloatMinor() - day.getCarriedOverMinor());
+                    day.getCarriedOverMinor() == null ? null : c.openingFloatMinor() - day.getCarriedOverMinor(),
+                    latest == null ? null : latest.getId(),
+                    c.cashRefundsMinor());
         }
 
         // ---- owner-only figures ----
         ClosePreview.Profit profit = null;
         List<ClosePreview.CountLine> countLines = null;
         if (owner) {
-            long cogs = one("""
+            long soldCost = one("""
                     SELECT COALESCE(SUM(l.line_cost_minor), 0) FROM sale_lines l JOIN sales s ON s.id = l.sale_id
                      WHERE s.shop_day_id = ? AND s.status = 'COMPLETED'""", dayId);
+            // goods that came back onto the shelf return their cost; goods thrown away do not
+            long restockedCost = one("""
+                    SELECT COALESCE(SUM(ROUND(l.quantity * l.unit_cost)), 0)::bigint
+                      FROM sale_refund_lines l JOIN sale_refunds r ON r.id = l.refund_id
+                     WHERE r.shop_day_id = ? AND l.disposition = 'RESTOCK'""", dayId);
             BigDecimal shrink = jdbc.queryForObject("""
                     SELECT COALESCE(SUM(ABS(m.quantity_delta) * m.unit_cost), 0) FROM stock_movements m
                      WHERE m.shop_day_id = ? AND m.movement_type = 'ADJUSTMENT'
@@ -156,7 +167,8 @@ public class ClosePreviewService {
                       JOIN customer_debts d ON d.id = w.debt_id
                      WHERE d.shop_id = ? AND w.business_date = ?""", shop.getId(), day.getBusinessDate());
 
-            long net = c.totalSalesMinor();
+            long net = c.totalSalesMinor() - c.refundsTotalMinor();
+            long cogs = soldCost - restockedCost;
             long gross = net - cogs;
             profit = new ClosePreview.Profit(net, cogs, gross, c.operatingExpensesMinor(),
                     gross - c.operatingExpensesMinor(),
@@ -178,12 +190,12 @@ public class ClosePreviewService {
         String openedBy = users.findById(day.getOpenedBy()).map(User::getDisplayName).orElse("");
         return new ClosePreview(shop.getId(), shop.getName(), dayId, day.getBusinessDate(),
                 day.getBusinessDate().isBefore(clock.today()), day.getCreatedAt(), openedBy, token,
-                sales, collections, money, deni, stock, drawer, profit, countLines);
+                sales, collections, refunds, money, deni, stock, drawer, profit, countLines);
     }
 
     /**
-     * A fingerprint of everything that moves the drawer or the day's sales: sales, repayments and money entries,
-     * and the reversals of each. All of those tables only ever grow, so any change alters a count or a sum.
+     * A fingerprint of everything that moves the drawer or the day's sales: sales, repayments, money entries and
+     * refunds, and the reversals of each. All of those tables only ever grow, so any change alters a count or a sum.
      * Stock deliveries and adjustments are not in it: they never touch the drawer.
      */
     public String activityToken(UUID dayId) {
@@ -196,8 +208,10 @@ public class ClosePreviewService {
                     || ',' || (SELECT COUNT(*) FROM debt_payment_reversals WHERE shop_day_id = ?)
                     || ',' || (SELECT COUNT(*) FROM money_movements WHERE shop_day_id = ?)
                     || ',' || (SELECT COALESCE(SUM(amount_minor), 0) FROM money_movements WHERE shop_day_id = ?)
-                    || ',' || (SELECT COUNT(*) FROM money_movement_reversals WHERE shop_day_id = ?)""",
-                String.class, Collections.nCopies(9, dayId).toArray());
+                    || ',' || (SELECT COUNT(*) FROM money_movement_reversals WHERE shop_day_id = ?)
+                    || ',' || (SELECT COUNT(*) FROM sale_refunds WHERE shop_day_id = ?)
+                    || ',' || (SELECT COALESCE(SUM(total_minor), 0) FROM sale_refunds WHERE shop_day_id = ?)""",
+                String.class, Collections.nCopies(11, dayId).toArray());
         return Hashing.sha256Hex(dayId + "|" + joined);
     }
 

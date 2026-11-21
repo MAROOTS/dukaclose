@@ -1,6 +1,18 @@
 import { useState } from 'react'
 import { Link , NavLink, Outlet } from 'react-router-dom'
-import {Building2, ChevronDown, Home, LogOut, Package, Receipt, ShoppingCart, Store, Users, Wallet} from 'lucide-react'
+import {
+    Building2,
+    CalendarCheck,
+    ChevronDown,
+    Home,
+    LogOut, Moon,
+    Package,
+    Receipt,
+    ShoppingCart,
+    Store,
+    Users,
+    Wallet
+} from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import { initials } from '../lib/names'
@@ -15,6 +27,8 @@ const NAV = [
     { to: '/money', label: 'Money', icon: Wallet },
     { to: '/stock', label: 'Stock', icon: Package },
     { to: '/shops', label: 'Shops', icon: Building2, ownerOnly: true, sidebarOnly: true },
+    { to: '/close', label: 'Close day', icon: Moon, sidebarOnly: true },
+    { to: '/closes', label: 'Past days', icon: CalendarCheck, sidebarOnly: true },
 ]
 
 function ShopSwitcher() {
