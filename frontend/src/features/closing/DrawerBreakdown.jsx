@@ -16,6 +16,7 @@ export default function DrawerBreakdown({ drawer }) {
                     ['Cash collected from deni', `+${formatKsh(drawer.cashCollectionsMinor)}`],
                     ['Other cash received', `+${formatKsh(drawer.otherCashInMinor)}`],
                     ['Cash paid out', `−${formatKsh(drawer.cashOutMinor)}`],
+                    drawer.cashRefundsMinor > 0 && ['Cash refunded', `−${formatKsh(drawer.cashRefundsMinor)}`],
                     ['Cash expected', formatKsh(drawer.expectedMinor), { strong: true }],
                     hasCount && ['Cash counted', formatKsh(drawer.countedMinor), { strong: true }],
                     diff && ['Difference', diff.label, { strong: true, tone: toneClass(diff.tone) }],

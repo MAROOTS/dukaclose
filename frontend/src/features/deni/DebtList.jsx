@@ -37,6 +37,7 @@ export default function DebtList({ debts, businessId, canWriteOff, onDone }) {
                             {formatKsh(d.originalMinor)} on deni
                             {d.paidMinor > 0 && `, ${formatKsh(d.paidMinor)} paid`}
                             {d.writtenOffMinor > 0 && `, ${formatKsh(d.writtenOffMinor)} written off`}
+                            {d.creditedMinor > 0 && `, ${formatKsh(d.creditedMinor)} refunded`}
                         </p>
                         {canWriteOff && !d.voided && d.balanceMinor > 0 && (
                             <WriteOffForm businessId={businessId} debt={d} onDone={onDone} />

@@ -9,6 +9,7 @@ import Alert from '../ui/Alert'
 import BackLink from '../ui/BackLink'
 import { Link, useParams } from 'react-router-dom'
 import { buttonClass } from '../ui/Button'
+import RefundPanel from '../features/sales/RefundPanel'
 
 function SaleDetail({ shop, saleId }) {
     const { me } = useAuth()
@@ -56,7 +57,7 @@ function SaleDetail({ shop, saleId }) {
     let why = ''
     if (sale.status === 'COMPLETED' && status && !canReverse) {
         why = !dayOpen
-            ? 'This sale is from a day that is no longer open, so it cannot be reversed here.'
+            ? 'This sale is from a day that is no longer open, so it cannot be reversed. If goods came back, the owner can record a refund below.'
             : 'Only the cashier who recorded this sale, or the owner, can reverse it.'
     }
 
@@ -78,6 +79,8 @@ function SaleDetail({ shop, saleId }) {
                 <ReverseForm url={`/shops/${shop.id}/sales/${sale.id}/reverse`} noun="sale" onDone={load} />
                 {why && <p className="no-print max-w-md text-sm text-ink-soft">{why}</p>}
             </div>
+
+            <RefundPanel key={sale.id} shop={shop} sale={sale} openDay={status?.openDay ?? null} />
         </div>
     )
 }

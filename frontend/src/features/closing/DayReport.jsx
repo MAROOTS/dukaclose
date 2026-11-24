@@ -56,6 +56,20 @@ export default function DayReport({ report }) {
                 />
             </Block>
 
+            {report.refunds && report.refunds.count > 0 && (
+                <Block title="Refunds" note="Goods brought back from earlier days’ sales. They are not sales: they take money out and reduce net sales.">
+                    <Lines
+                        rows={[
+                            [`Refunded (${report.refunds.count})`, `−${formatKsh(report.refunds.totalMinor)}`, { strong: true }],
+                            report.refunds.cashMinor > 0 && ['Paid back in cash', `−${formatKsh(report.refunds.cashMinor)}`],
+                            report.refunds.pochiMinor > 0 && ['Paid back by Pochi', formatKsh(report.refunds.pochiMinor)],
+                            report.refunds.tillMinor > 0 && ['Paid back by till', formatKsh(report.refunds.tillMinor)],
+                            report.refunds.deniCreditMinor > 0 && ['Taken off deni owed', formatKsh(report.refunds.deniCreditMinor)],
+                        ]}
+                    />
+                </Block>
+            )}
+
             <Block title="Deni collected" note="Repayments are money in. They are not sales.">
                 {c.count === 0 && c.reversedCount === 0 ? (
                     <Empty>No deni was collected.</Empty>
@@ -153,6 +167,7 @@ export default function DayReport({ report }) {
                             ['Gross profit', formatKsh(p.grossProfitMinor)],
                             ['Operating expenses', `−${formatKsh(p.operatingExpensesMinor)}`],
                             ['Estimated profit', formatKsh(p.estimatedProfitMinor), { strong: true }],
+                            ['Net sales (after refunds)', formatKsh(p.netSalesMinor)],
                         ]}
                     />
                     <h3 className="mt-6 text-sm font-medium">Shown separately, not subtracted above</h3>

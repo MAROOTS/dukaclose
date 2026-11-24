@@ -8,6 +8,7 @@ function titleOf(m) {
     if (m.type === 'RECEIPT') return 'Delivery received'
     if (m.type === 'SALE') return 'Sold'
     if (m.type === 'SALE_REVERSAL') return 'Sale reversed'
+    if (m.type === 'SALE_REFUND') return 'Refund, back on the shelf'
     return reasonLabel(m.reason)
 }
 
