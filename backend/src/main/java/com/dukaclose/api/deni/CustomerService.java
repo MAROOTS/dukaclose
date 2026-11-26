@@ -1,6 +1,8 @@
 // CustomerService.java
 package com.dukaclose.api.deni;
 
+import com.dukaclose.api.audit.AuditKind;
+import com.dukaclose.api.audit.ChangeLogService;
 import com.dukaclose.api.business.AccessService;
 import com.dukaclose.api.business.Shop;
 import com.dukaclose.api.common.ApiException;
@@ -23,6 +25,7 @@ public class CustomerService {
     private final CustomerRepository customers;
     private final DebtService debts;
     private final JdbcTemplate jdbc;
+    private final ChangeLogService changeLog;
 
     /**
      * The phone number IS the customer. An existing customer keeps the name already stored.
@@ -66,7 +69,13 @@ public class CustomerService {
         access.requireBusinessOwner(ownerId, businessId);
         Customer customer = customers.findByIdAndBusinessId(customerId, businessId)
                 .orElseThrow(() -> ApiException.notFound("CUSTOMER_NOT_FOUND", "No such customer"));
+        Long before = customer.getCreditLimitMinor();
         customer.changeCreditLimit(limitMinor);
+        if (!Objects.equals(before, limitMinor)) {
+            changeLog.record(businessId, null, AuditKind.CREDIT_LIMIT_CHANGED, "CUSTOMER", customerId, ownerId,
+                    ChangeLogService.map("customer", customer.getName(), "creditLimitMinor", before),
+                    ChangeLogService.map("customer", customer.getName(), "creditLimitMinor", limitMinor));
+        }
         return views(List.of(customer)).get(0);
     }
 

@@ -1,6 +1,8 @@
 // CashierService.java
 package com.dukaclose.api.business;
 
+import com.dukaclose.api.audit.AuditKind;
+import com.dukaclose.api.audit.ChangeLogService;
 import com.dukaclose.api.auth.User;
 import com.dukaclose.api.auth.UserRepository;
 import com.dukaclose.api.common.ApiException;
@@ -21,7 +23,7 @@ public class CashierService {
     private final UserRepository users;
     private final ShopMembershipRepository shopMemberships;
     private final PasswordEncoder passwordEncoder;
-
+    private final ChangeLogService changeLog;
     @Transactional
     public CashierResponse create(UUID ownerId, UUID businessId, CreateCashierRequest request) {
         access.requireBusinessOwner(ownerId, businessId);
@@ -35,7 +37,6 @@ public class CashierService {
         if (!valid) {
             throw ApiException.badRequest("INVALID_SHOPS", "One or more shops do not belong to this business");
         }
-
         if (users.existsByLoginIdentifier(phone)) {
             throw ApiException.conflict("PHONE_TAKEN", "That phone number is already registered");
         }
@@ -43,6 +44,12 @@ public class CashierService {
         User user = users.save(new User(
                 request.displayName().trim(), phone, passwordEncoder.encode(request.password())));
         targets.forEach(s -> shopMemberships.save(new ShopMembership(s.getId(), user.getId(), Role.CASHIER)));
+
+        List<String> shopNames = targets.stream().map(Shop::getName).sorted().toList();
+        changeLog.record(businessId, null, AuditKind.CASHIER_CREATED, "USER", user.getId(), ownerId, null,
+                ChangeLogService.map("displayName", user.getDisplayName(), "shops", shopNames));
+        targets.forEach(s -> changeLog.record(businessId, s.getId(), AuditKind.CASHIER_ASSIGNED, "USER", user.getId(),
+                ownerId, null, ChangeLogService.map("cashier", user.getDisplayName(), "shop", s.getName())));
         return toResponse(user);
     }
 
@@ -63,24 +70,40 @@ public class CashierService {
     public void assign(UUID ownerId, UUID shopId, UUID cashierId) {
         Shop shop = access.requireShopOwner(ownerId, shopId).shop();
 
-        List<UUID> businessShopIds = shops.findByBusinessId(shop.getBusinessId()).stream()
-                .map(Shop::getId)
-                .toList();
+        List<UUID> businessShopIds = shops.findByBusinessId(shop.getBusinessId()).stream().map(Shop::getId).toList();
         if (!shopMemberships.existsByShopIdInAndUserId(businessShopIds, cashierId)) {
             throw ApiException.notFound("CASHIER_NOT_FOUND", "No such cashier in this business");
         }
+        String cashierName = users.findById(cashierId).map(User::getDisplayName).orElse("");
 
-        shopMemberships.findByShopIdAndUserId(shopId, cashierId).ifPresentOrElse(
-                ShopMembership::activate,
-                () -> shopMemberships.save(new ShopMembership(shopId, cashierId, Role.CASHIER)));
+        Optional<ShopMembership> existing = shopMemberships.findByShopIdAndUserId(shopId, cashierId);
+        if (existing.isPresent()) {
+            ShopMembership membership = existing.get();
+            if (membership.getStatus() != RecordStatus.ACTIVE) {
+                membership.activate();
+                logAssignment(AuditKind.CASHIER_ASSIGNED, ownerId, shop, cashierId, cashierName);
+            }
+        } else {
+            shopMemberships.save(new ShopMembership(shopId, cashierId, Role.CASHIER));
+            logAssignment(AuditKind.CASHIER_ASSIGNED, ownerId, shop, cashierId, cashierName);
+        }
     }
 
     @Transactional
     public void unassign(UUID ownerId, UUID shopId, UUID cashierId) {
-        access.requireShopOwner(ownerId, shopId);
+        Shop shop = access.requireShopOwner(ownerId, shopId).shop();
         ShopMembership membership = shopMemberships.findByShopIdAndUserId(shopId, cashierId)
                 .orElseThrow(() -> ApiException.notFound("CASHIER_NOT_FOUND", "No such cashier on this shop"));
-        membership.deactivate();
+        if (membership.getStatus() == RecordStatus.ACTIVE) {
+            membership.deactivate();
+            logAssignment(AuditKind.CASHIER_UNASSIGNED, ownerId, shop, cashierId,
+                    users.findById(cashierId).map(User::getDisplayName).orElse(""));
+        }
+    }
+
+    private void logAssignment(AuditKind kind, UUID ownerId, Shop shop, UUID cashierId, String cashierName) {
+        changeLog.record(shop.getBusinessId(), shop.getId(), kind, "USER", cashierId, ownerId, null,
+                ChangeLogService.map("cashier", cashierName, "shop", shop.getName()));
     }
 
     private CashierResponse toResponse(User user) {

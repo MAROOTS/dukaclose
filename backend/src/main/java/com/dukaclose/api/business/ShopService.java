@@ -1,6 +1,8 @@
 // ShopService.java
 package com.dukaclose.api.business;
 
+import com.dukaclose.api.audit.AuditKind;
+import com.dukaclose.api.audit.ChangeLogService;
 import com.dukaclose.api.common.ApiException;
 import java.util.List;
 import java.util.UUID;
@@ -14,7 +16,7 @@ public class ShopService {
 
     private final AccessService access;
     private final ShopRepository shops;
-
+    private final ChangeLogService changeLog;
     @Transactional
     public ShopResponse create(UUID userId, CreateShopRequest request) {
         Business business = access.requireBusinessOwner(userId, request.businessId());
@@ -23,6 +25,8 @@ public class ShopService {
             throw ApiException.conflict("SHOP_NAME_TAKEN", "You already have a shop with that name");
         }
         Shop shop = shops.save(new Shop(business.getId(), name));
+        changeLog.record(business.getId(), shop.getId(), AuditKind.SHOP_CREATED, "SHOP", shop.getId(), userId, null,
+                ChangeLogService.map("name", name));
         return ShopResponse.of(shop, Role.OWNER);
     }
 

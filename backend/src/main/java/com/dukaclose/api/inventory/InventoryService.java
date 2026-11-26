@@ -1,13 +1,18 @@
 // InventoryService.java
 package com.dukaclose.api.inventory;
 
+import com.dukaclose.api.audit.AuditKind;
+import com.dukaclose.api.audit.ChangeLogService;
 import com.dukaclose.api.business.AccessService;
 import com.dukaclose.api.business.Role;
 import com.dukaclose.api.business.Shop;
 import com.dukaclose.api.common.ApiException;
 import com.dukaclose.api.common.RecordStatus;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -22,6 +27,7 @@ public class InventoryService {
     private final AccessService access;
     private final ItemRepository items;
     private final ShopInventoryRepository inventory;
+    private final ChangeLogService changeLog;
 
     /** Owners and assigned cashiers may read. Only owners see cost. */
     @Transactional(readOnly = true)
@@ -52,9 +58,23 @@ public class InventoryService {
 
         ShopInventory row = inventory.findForUpdate(shopId, itemId)
                 .orElseGet(() -> new ShopInventory(shopId, shop.getBusinessId(), itemId, null));
+        Long oldPrice = row.getPriceMinor();
+        BigDecimal oldReorder = row.getReorderLevel();
         row.update(request.priceMinor(), request.reorderLevel());
         inventory.save(row);
 
+        // a save that changes nothing is not an event
+        if (!Objects.equals(oldPrice, request.priceMinor())) {
+            changeLog.record(shop.getBusinessId(), shopId, AuditKind.PRICE_CHANGED, "SHOP_ITEM", itemId, ownerId,
+                    ChangeLogService.map("item", item.getName(), "priceMinor", oldPrice),
+                    ChangeLogService.map("item", item.getName(), "priceMinor", request.priceMinor()));
+        }
+        if (oldReorder.compareTo(request.reorderLevel()) != 0) {
+            changeLog.record(shop.getBusinessId(), shopId, AuditKind.REORDER_LEVEL_CHANGED, "SHOP_ITEM", itemId, ownerId,
+                    ChangeLogService.map("item", item.getName(), "reorderLevel", oldReorder),
+                    ChangeLogService.map("item", item.getName(), "reorderLevel", request.reorderLevel()));
+        }
         return InventoryRow.of(item, row, true);
     }
+
 }

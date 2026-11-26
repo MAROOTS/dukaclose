@@ -1,5 +1,7 @@
 package com.dukaclose.api.inventory;
 
+import com.dukaclose.api.audit.AuditKind;
+import com.dukaclose.api.audit.ChangeLogService;
 import com.dukaclose.api.business.AccessService;
 import com.dukaclose.api.business.Shop;
 import com.dukaclose.api.business.ShopRepository;
@@ -7,6 +9,8 @@ import com.dukaclose.api.common.ApiException;
 import com.dukaclose.api.common.RecordStatus;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +24,7 @@ public class ItemService {
     private final ItemRepository items;
     private final ShopRepository shops;
     private final ShopInventoryRepository inventory;
+    private final ChangeLogService changeLog;
 
     private record Pack(String name, BigDecimal size) {}
 
@@ -34,12 +39,18 @@ public class ItemService {
         Pack pack = validatePack(request.unit(), request.packName(), request.packSize());
 
         Item item = items.save(new Item(businessId, name, request.unit(), pack.name(), pack.size()));
+        changeLog.record(businessId, null, AuditKind.ITEM_CREATED, "ITEM", item.getId(), ownerId, null,
+                ChangeLogService.map("name", name, "unit", request.unit().name(),
+                        "packName", pack.name(), "packSize", pack.size()));
 
         // Optional: list the item, at one price, in every active shop of the business
         if (request.initialPriceMinor() != null) {
             for (Shop shop : shops.findByBusinessId(businessId)) {
                 if (shop.getStatus() == RecordStatus.ACTIVE) {
                     inventory.save(new ShopInventory(shop.getId(), businessId, item.getId(), request.initialPriceMinor()));
+                    changeLog.record(businessId, shop.getId(), AuditKind.PRICE_CHANGED, "SHOP_ITEM", item.getId(), ownerId,
+                            ChangeLogService.map("item", name, "priceMinor", null),
+                            ChangeLogService.map("item", name, "priceMinor", request.initialPriceMinor()));
                 }
             }
         }
@@ -67,12 +78,34 @@ public class ItemService {
 
         Pack pack = validatePack(item.getUnit(), request.packName(), request.packSize());
 
-        boolean archiving = !request.active() && item.getStatus() == RecordStatus.ACTIVE;
+        boolean wasActive = item.getStatus() == RecordStatus.ACTIVE;
+        boolean archiving = !request.active() && wasActive;
         if (archiving && inventory.existsByItemIdAndOnHandGreaterThan(itemId, BigDecimal.ZERO)) {
             throw ApiException.conflict("ITEM_HAS_STOCK", "This item still has stock in a shop. Clear the stock first.");
         }
 
+        Map<String, Object> before = ChangeLogService.map("name", item.getName(),
+                "packName", item.getPackName(), "packSize", item.getPackSize());
         item.update(name, pack.name(), pack.size(), request.active());
+        Map<String, Object> after = ChangeLogService.map("name", name, "packName", pack.name(), "packSize", pack.size());
+
+        // a save that changes nothing is not an event
+        if (!before.equals(after) && !(Objects.equals(before.get("packSize"), after.get("packSize")) == false
+                ? false : false)) {
+            boolean sameSize = before.get("packSize") == null ? after.get("packSize") == null
+                    : after.get("packSize") != null && ((BigDecimal) before.get("packSize")).compareTo((BigDecimal) after.get("packSize")) == 0;
+            boolean changed = !Objects.equals(before.get("name"), name)
+                    || !Objects.equals(before.get("packName"), pack.name()) || !sameSize;
+            if (changed) {
+                changeLog.record(businessId, null, AuditKind.ITEM_UPDATED, "ITEM", itemId, ownerId, before,
+                        ChangeLogService.map("name", name, "packName", pack.name(), "packSize", pack.size()));
+            }
+        }
+        if (wasActive != request.active()) {
+            changeLog.record(businessId, null, request.active() ? AuditKind.ITEM_RESTORED : AuditKind.ITEM_ARCHIVED,
+                    "ITEM", itemId, ownerId, ChangeLogService.map("name", name, "active", wasActive),
+                    ChangeLogService.map("name", name, "active", request.active()));
+        }
         return ItemResponse.of(item);
     }
 

@@ -1,5 +1,7 @@
 package com.dukaclose.api.inventory;
 
+import com.dukaclose.api.audit.AuditKind;
+import com.dukaclose.api.audit.ChangeLogService;
 import com.dukaclose.api.business.AccessService;
 import com.dukaclose.api.business.Shop;
 import com.dukaclose.api.common.ApiException;
@@ -61,6 +63,7 @@ public class CsvImportService {
     private final ShopInventoryRepository inventory;
     private final StockMovementRepository movements;
     private final StockService stockService;
+    private final ChangeLogService changeLog;
 
     private record RawRow(int line, Map<String, String> cells) {
         String get(String column) { return cells.getOrDefault(column, ""); }
@@ -139,9 +142,15 @@ public class CsvImportService {
 
     private void apply(UUID userId, UUID shopId, UUID businessId, List<Row> rows) {
         for (Row r : rows) {
-            Item item = r.existing() != null
-                    ? r.existing()
-                    : items.save(new Item(businessId, r.name(), r.unit(), r.packName(), r.packSize()));
+            Item item;
+            if (r.existing() != null) {
+                item = r.existing();
+            } else {
+                item = items.save(new Item(businessId, r.name(), r.unit(), r.packName(), r.packSize()));
+                changeLog.record(businessId, null, AuditKind.ITEM_CREATED, "ITEM", item.getId(), userId, null,
+                        ChangeLogService.map("name", r.name(), "unit", r.unit().name(), "packName", r.packName(),
+                                "packSize", r.packSize(), "source", "CSV import"));
+            }
 
             if (r.quantity() != null && !r.alreadyApplied()) {
                 stockService.openingStock(userId, shopId, item.getId(), new StockInRequest(
@@ -152,9 +161,22 @@ public class CsvImportService {
                 ShopInventory row = inventory.findForUpdate(shopId, item.getId())
                         .orElseGet(() -> inventory.saveAndFlush(
                                 new ShopInventory(shopId, businessId, item.getId(), null)));
-                row.update(
-                        r.priceMinor() != null ? r.priceMinor() : row.getPriceMinor(),
-                        r.reorderLevel() != null ? r.reorderLevel() : row.getReorderLevel());
+                Long oldPrice = row.getPriceMinor();
+                BigDecimal oldReorder = row.getReorderLevel();
+                Long newPrice = r.priceMinor() != null ? r.priceMinor() : oldPrice;
+                BigDecimal newReorder = r.reorderLevel() != null ? r.reorderLevel() : oldReorder;
+                row.update(newPrice, newReorder);
+
+                if (!Objects.equals(oldPrice, newPrice)) {
+                    changeLog.record(businessId, shopId, AuditKind.PRICE_CHANGED, "SHOP_ITEM", item.getId(), userId,
+                            ChangeLogService.map("item", item.getName(), "priceMinor", oldPrice),
+                            ChangeLogService.map("item", item.getName(), "priceMinor", newPrice));
+                }
+                if (oldReorder.compareTo(newReorder) != 0) {
+                    changeLog.record(businessId, shopId, AuditKind.REORDER_LEVEL_CHANGED, "SHOP_ITEM", item.getId(), userId,
+                            ChangeLogService.map("item", item.getName(), "reorderLevel", oldReorder),
+                            ChangeLogService.map("item", item.getName(), "reorderLevel", newReorder));
+                }
             }
         }
     }
