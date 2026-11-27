@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Loader2, Printer } from 'lucide-react'
+import { Printer } from 'lucide-react'
 import api, { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import DayReport, { Block } from '../features/closing/DayReport'
@@ -9,6 +9,7 @@ import { formatBusinessDate, formatDateTime } from '../lib/dates'
 import Alert from '../ui/Alert'
 import BackLink from '../ui/BackLink'
 import Button from '../ui/Button'
+import Spinner from '../ui/Spinner'
 
 function ClosedDay({ shop, date }) {
     const [view, setView] = useState(null)
@@ -40,13 +41,7 @@ function ClosedDay({ shop, date }) {
         }
     }, [shop.id, date])
 
-    if (loading) {
-        return (
-            <div className="flex justify-center pt-16">
-                <Loader2 className="h-6 w-6 animate-spin text-forest-600" aria-label="Loading" />
-            </div>
-        )
-    }
+    if (loading) return <Spinner />
     if (!view) {
         return (
             <div>

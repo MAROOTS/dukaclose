@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import AdjustForm from '../features/inventory/AdjustForm'
@@ -13,6 +12,7 @@ import { UNITS, formatQty } from '../lib/units'
 import Alert from '../ui/Alert'
 import BackLink from '../ui/BackLink'
 import Segmented from '../ui/Segmented'
+import Spinner from '../ui/Spinner'
 
 function Stat({ label, children }) {
     return (
@@ -52,13 +52,7 @@ export default function ItemPage() {
     const item = rows.find((r) => r.itemId === itemId)
 
     if (!selectedShop) return <p className="text-ink-soft">Choose a shop first.</p>
-    if (loading) {
-        return (
-            <div className="flex justify-center pt-16">
-                <Loader2 className="h-6 w-6 animate-spin text-forest-600" aria-label="Loading" />
-            </div>
-        )
-    }
+    if (loading) return <Spinner />
     if (!item) {
         return (
             <div>

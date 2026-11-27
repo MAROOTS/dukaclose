@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react'
+import { ArrowUpRight, Check, Wallet } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { firstName } from '../lib/names'
@@ -45,6 +45,28 @@ export default function HomePage() {
             <p className="mt-3 text-ink-soft">
                 You are working in {selectedShop.name} as {selectedShop.role === 'OWNER' ? 'the owner' : 'a cashier'}.
             </p>
+
+            {isOwner && (
+                <div className="mt-6">
+                    <Link to="/owner" className={buttonClass()}>Open the overview</Link>
+                </div>
+            )}
+
+            {isOwner && (
+                <Link
+                    to="/money"
+                    className="mt-6 flex items-center gap-4 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-forest-200 hover:bg-forest-50/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-600"
+                >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-700">
+                        <Wallet className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                        <span className="block font-semibold text-ink">Money</span>
+                        <span className="mt-0.5 block text-sm text-ink-soft">Record income and expenses, and review the book.</span>
+                    </span>
+                    <ArrowUpRight className="h-5 w-5 shrink-0 text-ink-faint" aria-hidden="true" />
+                </Link>
+            )}
 
             <DayPanel key={selectedShop.id} shop={selectedShop} />
 

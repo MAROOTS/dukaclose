@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import api, { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import DeniSection from '../features/sales/DeniSection'
@@ -17,16 +17,9 @@ import { describeLines, SALE_METHODS, sumLines } from '../lib/sales'
 import Alert from '../ui/Alert'
 import Button, { buttonClass } from '../ui/Button'
 import Notice from '../ui/Notice'
+import Spinner from '../ui/Spinner'
 
 const EMPTY_PAY = { CASH: '', POCHI: '', TILL: '', DENI: '' }
-
-function Spinner() {
-    return (
-        <div className="flex justify-center pt-16">
-            <Loader2 className="h-6 w-6 animate-spin text-forest-600" aria-label="Loading" />
-        </div>
-    )
-}
 
 function Sell({ shop }) {
     const { rows, loading: stockLoading, error: stockError, reload } = useInventory(shop.id)

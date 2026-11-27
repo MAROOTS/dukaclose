@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import Receipt, { ReceiptActions } from '../features/sales/Receipt'
@@ -10,6 +9,7 @@ import BackLink from '../ui/BackLink'
 import { Link, useParams } from 'react-router-dom'
 import { buttonClass } from '../ui/Button'
 import RefundPanel from '../features/sales/RefundPanel'
+import Spinner from '../ui/Spinner'
 
 function SaleDetail({ shop, saleId }) {
     const { me } = useAuth()
@@ -34,13 +34,7 @@ function SaleDetail({ shop, saleId }) {
         load()
     }, [load])
 
-    if (loading) {
-        return (
-            <div className="flex justify-center pt-16">
-                <Loader2 className="h-6 w-6 animate-spin text-forest-600" aria-label="Loading" />
-            </div>
-        )
-    }
+    if (loading) return <Spinner />
     if (!sale) {
         return (
             <div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Download, Loader2 } from 'lucide-react'
+import { Download } from 'lucide-react'
 import api, { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { formatKsh } from '../lib/money'
@@ -160,7 +160,7 @@ export default function ImportPage() {
 
                 {busy && (
                     <p className="mt-6 flex items-center gap-2 text-sm text-ink-soft">
-                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Working…
+                        <span className="app-spinner app-spinner--xs" aria-hidden="true" /> Working…
                     </p>
                 )}
                 {error && <div className="mt-6"><Alert>{error}</Alert></div>}

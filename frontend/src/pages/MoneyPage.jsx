@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import MoneyForm from '../features/money/MoneyForm'
@@ -12,6 +11,7 @@ import { methodLabel } from '../lib/sales'
 import Alert from '../ui/Alert'
 import Button from '../ui/Button'
 import Field from '../ui/Field'
+import Spinner from '../ui/Spinner'
 
 function MoneyBook({ shop }) {
     const { me } = useAuth()
@@ -83,9 +83,7 @@ function MoneyBook({ shop }) {
                 {error && <div className="mt-6"><Alert>{error}</Alert></div>}
 
                 {loading ? (
-                    <div className="mt-10 flex justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-forest-600" aria-label="Loading" />
-                    </div>
+                    <Spinner className="mt-10" />
                 ) : items.length === 0 ? (
                     <p className="mt-6 border-y border-line py-8 text-ink-soft">
                         No money recorded on {meta ? formatBusinessDate(meta.date) : 'this day'}.

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { formatShortDate } from '../lib/dates'
@@ -8,6 +7,7 @@ import { formatKsh } from '../lib/money'
 import { formatPhone } from '../lib/phone'
 import Alert from '../ui/Alert'
 import Button from '../ui/Button'
+import Spinner from '../ui/Spinner'
 
 function Stat({ label, children, danger }) {
     return (
@@ -61,9 +61,7 @@ function DeniLedger({ shop }) {
             {error && <div className="mt-6"><Alert>{error}</Alert></div>}
 
             {loading ? (
-                <div className="mt-12 flex justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-forest-600" aria-label="Loading" />
-                </div>
+                <Spinner className="mt-12" />
             ) : meta && meta.customerCount === 0 ? (
                 <p className="mt-8 border-y border-line py-8 text-ink-soft">
                     Nobody owes anything. Deni sales will appear here.

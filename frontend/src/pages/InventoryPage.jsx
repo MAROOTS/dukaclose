@@ -4,7 +4,6 @@ import {
     AlertTriangle,
     Boxes,
     ChevronRight,
-    Loader2,
     Package,
     Plus,
     Search,
@@ -18,6 +17,7 @@ import { UNITS, formatQty } from '../lib/units'
 import Alert from '../ui/Alert'
 import { buttonClass } from '../ui/Button'
 import Segmented from '../ui/Segmented'
+import Spinner from '../ui/Spinner'
 
 export default function InventoryPage() {
     const { selectedShop } = useAuth()
@@ -223,10 +223,7 @@ export default function InventoryPage() {
 
                 {loading ? (
                     <div className="flex min-h-[240px] flex-col items-center justify-center rounded-2xl border border-line bg-surface">
-                        <Loader2
-                            className="h-7 w-7 animate-spin text-forest-600"
-                            aria-label="Loading"
-                        />
+                        <Spinner className="flex-1 items-center" size="lg" />
                         <p className="mt-3 text-sm text-ink-soft">
                             Loading your inventory...
                         </p>

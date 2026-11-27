@@ -1,5 +1,3 @@
-import { Loader2 } from 'lucide-react'
-
 const base =
     'inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 text-[15px] font-semibold transition-colors ' +
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-600 ' +
@@ -16,8 +14,8 @@ export const buttonClass = (variant = 'primary') => `${base} ${variants[variant]
 
 export default function Button({ variant = 'primary', loading = false, className = '', disabled, children, ...props }) {
     return (
-        <button className={`${buttonClass(variant)} ${className}`} disabled={disabled || loading} {...props}>
-            {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+        <button className={`${buttonClass(variant)} ${className}`} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>
+            {loading && <span className="app-spinner app-spinner--xs" aria-hidden="true" />}
             {children}
         </button>
     )

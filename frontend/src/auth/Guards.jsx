@@ -1,17 +1,13 @@
-import { Loader2 } from 'lucide-react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
+import Spinner from '../ui/Spinner'
 
 export function RequireAuth() {
     const { me, loading } = useAuth()
     const location = useLocation()
 
     if (loading) {
-        return (
-            <div className="grid min-h-dvh place-items-center">
-                <Loader2 className="h-7 w-7 animate-spin text-forest-600" aria-label="Loading" />
-            </div>
-        )
+        return <Spinner className="min-h-dvh items-center" size="lg" />
     }
     if (!me) return <Navigate to="/login" replace state={{ from: location }} />
     return <Outlet />

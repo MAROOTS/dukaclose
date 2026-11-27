@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../../api/client'
 import { useShopDay } from '../../hooks/useShopDay'
 import { formatBusinessDate, formatDateTime, formatShortDate } from '../../lib/dates'
@@ -8,6 +7,7 @@ import { formatKsh, minorToInput, parseKshToMinor } from '../../lib/money'
 import Alert from '../../ui/Alert'
 import Button, { buttonClass } from '../../ui/Button'
 import Field from '../../ui/Field'
+import Spinner from '../../ui/Spinner'
 
 function Page({ children }) {
     return (
@@ -56,7 +56,7 @@ export default function DayPanel({ shop }) {
     if (loading) {
         return (
             <Page>
-                <Loader2 className="h-6 w-6 animate-spin text-forest-600" aria-label="Loading" />
+                <Spinner className="py-1" />
             </Page>
         )
     }

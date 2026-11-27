@@ -1,10 +1,9 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Link , NavLink, Outlet } from 'react-router-dom'
 import {
     Building2,
     CalendarCheck,
-    ChevronDown,
-    Home,
+    Home, LayoutDashboard,
     LogOut, Moon,
     Package,
     Receipt,
@@ -17,10 +16,12 @@ import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import { initials } from '../lib/names'
 import Alert from '../ui/Alert'
+import { SelectField } from '../ui/Field'
 import Logo from '../ui/Logo'
 
 const NAV = [
     { to: '/', label: 'Home', icon: Home, end: true, sidebarOnly: true },
+    { to: '/owner', label: 'Overview', icon: LayoutDashboard, ownerOnly: true },
     { to: '/sell', label: 'Sell', icon: ShoppingCart },
     { to: '/sales', label: 'Sales', icon: Receipt },
     { to: '/deni', label: 'Deni', icon: Users },
@@ -33,6 +34,7 @@ const NAV = [
 
 function ShopSwitcher() {
     const { shops, selectedShop, selectShop } = useAuth()
+    const id = useId()
 
     if (!selectedShop) return <span className="text-sm text-ink-soft">No shop assigned</span>
 
@@ -46,22 +48,18 @@ function ShopSwitcher() {
     }
 
     return (
-        <label className="relative block">
-            <span className="sr-only">Select shop</span>
-            <select
-                value={selectedShop.id}
-                onChange={(e) => selectShop(e.target.value)}
-                className="h-10 w-full appearance-none rounded-lg border border-line-strong bg-surface pl-3 pr-9 text-sm font-medium text-ink focus:border-forest-600 focus:outline-none focus:ring-4 focus:ring-forest-600/15"
-            >
-                {shops.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-            </select>
-            <ChevronDown
-                aria-hidden="true"
-                className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint"
-            />
-        </label>
+        <SelectField
+            id={id}
+            label="Select shop"
+            labelClassName="sr-only"
+            value={selectedShop.id}
+            onChange={(e) => selectShop(e.target.value)}
+            size="sm"
+        >
+            {shops.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+        </SelectField>
     )
 }
 
@@ -70,7 +68,7 @@ export default function AppLayout() {
     const [logoutError, setLogoutError] = useState('')
 
     const items = NAV.filter((item) => !item.ownerOnly || isOwner)
-    const tabs = items.filter((item) => !item.sidebarOnly)
+    const tabs = items.filter((item) => !item.sidebarOnly && !(isOwner && item.to === '/money'))
     const showBottomNav = tabs.length > 1
 
     async function handleLogout() {
@@ -90,17 +88,18 @@ export default function AppLayout() {
     return (
         <div className="print-flat min-h-dvh lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
             {/* Sidebar: laptops */}
-            <aside className="no-print hidden border-r border-line bg-surface px-5 py-7 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col " >
-                <div className="flex items-center gap-3">
-                    <Logo size={34} />
-                    <span className="font-display text-xl font-medium">Duka Close</span>
+            <aside className="no-print hidden border-r border-line bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col">
+                <div className="shrink-0 px-5 pt-7">
+                    <div className="flex items-center gap-3">
+                        <Logo size={34} />
+                        <span className="font-display text-xl font-medium">Duka Close</span>
+                    </div>
+                    <div className="mt-6">
+                        <ShopSwitcher />
+                    </div>
                 </div>
 
-                <div className="mt-8">
-                    <ShopSwitcher />
-                </div>
-
-                <nav aria-label="Main" className="mt-6 space-y-1">
+                <nav aria-label="Main" className="mt-5 min-h-0 flex-1 space-y-1 overflow-y-auto px-5 pb-4">
                     {items.map(({ to, label, icon: Icon, end }) => (
                         <NavLink key={to} to={to} end={end} className={sideLink}>
                             <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
@@ -109,7 +108,7 @@ export default function AppLayout() {
                     ))}
                 </nav>
 
-                <div className="mt-auto border-t border-line pt-5">
+                <div className="shrink-0 border-t border-line px-5 py-4">
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-forest-100 text-sm font-semibold text-forest-800">
                             {initials(me.user.displayName)}
@@ -121,7 +120,7 @@ export default function AppLayout() {
                     </div>
                     <button
                         onClick={handleLogout}
-                        className="mt-4 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
+                        className="mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
                     >
                         <LogOut className="h-[18px] w-[18px]" aria-hidden="true" />
                         Log out
@@ -162,24 +161,24 @@ export default function AppLayout() {
                 {showBottomNav && (
                     <nav
                         aria-label="Main"
-                        className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+                        className="mobile-bottom-nav no-print fixed inset-x-2 z-30 mx-auto max-w-xl rounded-2xl border border-white/80 bg-surface/90 p-1 shadow-[0_12px_35px_-12px_rgba(23,48,43,0.32)] backdrop-blur-xl lg:hidden"
                     >
-                        <ul className="mx-auto flex max-w-md">
+                        <ul className="mx-auto flex max-w-md gap-0.5">
                             {tabs.map(({ to, label, icon: Icon, end }) => (
-                                <li key={to} className="flex-1">
+                                <li key={to} className="min-w-0 flex-1">
                                     <NavLink
                                         to={to}
                                         end={end}
                                         className={({ isActive }) =>
-                                            `flex h-16 flex-col items-center justify-center gap-1 text-xs font-medium ${
-                                                isActive ? 'text-forest-700' : 'text-ink-faint'
+                                            `flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-600 ${
+                                                isActive ? 'bg-forest-50 text-forest-700' : 'text-ink-faint hover:bg-ink/5'
                                             }`
                                         }
                                     >
                                         {({ isActive }) => (
                                             <>
-                                                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.25 : 1.75} aria-hidden="true" />
-                                                {label}
+                                                <Icon className="h-5 w-5 shrink-0" strokeWidth={isActive ? 2.25 : 1.75} aria-hidden="true" />
+                                                <span className="max-w-full truncate">{label}</span>
                                             </>
                                         )}
                                     </NavLink>

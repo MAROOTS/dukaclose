@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { formatBusinessDate, formatTime } from '../lib/dates'
@@ -9,6 +8,7 @@ import { formatReceiptNo, methodLabel } from '../lib/sales'
 import Alert from '../ui/Alert'
 import Button from '../ui/Button'
 import Field from '../ui/Field'
+import Spinner from '../ui/Spinner'
 
 function SalesList({ shop }) {
     const [date, setDate] = useState('') // '' means the shop's current day
@@ -61,9 +61,7 @@ function SalesList({ shop }) {
             {error && <div className="mt-6"><Alert>{error}</Alert></div>}
 
             {loading ? (
-                <div className="mt-12 flex justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-forest-600" aria-label="Loading" />
-                </div>
+                <Spinner className="mt-12" />
             ) : items.length === 0 ? (
                 <p className="mt-8 border-y border-line py-8 text-ink-soft">
                     No sales on {meta ? formatBusinessDate(meta.date) : 'this day'}.

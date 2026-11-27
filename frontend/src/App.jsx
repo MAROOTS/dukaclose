@@ -17,6 +17,13 @@ import MoneyPage from './pages/MoneyPage'
 import ClosedDayPage from './pages/ClosedDayPage'
 import CloseDayPage from './pages/CloseDayPage'
 import ClosesPage from './pages/ClosesPage'
+import OwnerLayout from './layout/OwnerLayout'
+import AuditPage from './pages/AuditPage'
+import CloseBoardPage from './pages/CloseBoardPage'
+import DeniAgeingPage from './pages/DeniAgeingPage'
+import LowStockPage from './pages/LowStockPage'
+import OverviewPage from './pages/OverviewPage'
+import RecordsPage from './pages/RecordsPage'
 
 export default function App() {
     return (
@@ -31,6 +38,14 @@ export default function App() {
                         <Route path="stock/new" element={<NewItemPage />} />
                         <Route path="stock/import" element={<ImportPage />} />
                         <Route path="shops" element={<ShopsPage />} />
+                        <Route element={<OwnerLayout />}>
+                            <Route path="owner" element={<OverviewPage />} />
+                            <Route path="owner/closes" element={<CloseBoardPage />} />
+                            <Route path="owner/deni" element={<DeniAgeingPage />} />
+                            <Route path="owner/stock" element={<LowStockPage />} />
+                            <Route path="owner/records/:kind" element={<RecordsPage />} />
+                            <Route path="owner/audit" element={<AuditPage />} />
+                        </Route>
                     </Route>
                     <Route path="sell" element={<SellPage />} />
                     <Route path="sales" element={<SalesPage />} />

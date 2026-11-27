@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Loader2 } from 'lucide-react'
 import api, { errorMessage } from '../../api/client'
 import { formatBusinessDate, formatDateTime } from '../../lib/dates'
 import { formatKsh, minorToInput, parseKshToMinor } from '../../lib/money'
@@ -10,6 +9,7 @@ import Button from '../../ui/Button'
 import Field from '../../ui/Field'
 import Notice from '../../ui/Notice'
 import Segmented from '../../ui/Segmented'
+import Spinner from '../../ui/Spinner'
 
 const DISPOSITIONS = [
     { value: 'RESTOCK', label: 'Back on the shelf' },
@@ -291,7 +291,7 @@ export default function RefundPanel({ shop, sale, openDay }) {
 
     if (!options) {
         return error ? <div className="no-print mt-8"><Alert>{error}</Alert></div> : (
-            <div className="no-print mt-8"><Loader2 className="h-5 w-5 animate-spin text-forest-600" aria-label="Loading" /></div>
+            <div className="no-print"><Spinner className="mt-8" size="sm" /></div>
         )
     }
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import CloseSection from '../features/closing/CloseSection'
 import CountSection from '../features/closing/CountSection'
@@ -13,14 +13,7 @@ import { formatBusinessDate } from '../lib/dates'
 import { formatKsh } from '../lib/money'
 import Alert from '../ui/Alert'
 import Button, { buttonClass } from '../ui/Button'
-
-function Spinner() {
-    return (
-        <div className="flex justify-center pt-16">
-            <Loader2 className="h-6 w-6 animate-spin text-forest-600" aria-label="Loading" />
-        </div>
-    )
-}
+import Spinner from '../ui/Spinner'
 
 function CloseDay({ shop }) {
     const { status, loading: dayLoading } = useShopDay(shop.id)
